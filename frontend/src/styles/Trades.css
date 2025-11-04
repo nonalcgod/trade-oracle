@@ -1,0 +1,135 @@
+.trades-container {
+  width: 100%;
+  margin: 2rem 0;
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.trades-container h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #2c3e50;
+}
+
+.loading,
+.no-trades {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+  font-size: 1rem;
+}
+
+.trades-table-wrapper {
+  overflow-x: auto;
+}
+
+.trades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.trades-table thead {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.trades-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+.trades-table tbody tr {
+  border-bottom: 1px solid #ecf0f1;
+  transition: background-color 0.2s ease;
+}
+
+.trades-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.trades-table td {
+  padding: 1rem;
+  color: #2c3e50;
+}
+
+.trade-row.positive {
+  background-color: rgba(39, 174, 96, 0.05);
+}
+
+.trade-row.negative {
+  background-color: rgba(231, 76, 60, 0.05);
+}
+
+.timestamp {
+  color: #7f8c8d;
+  font-size: 0.85rem;
+}
+
+.symbol {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.signal-type {
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge.buy {
+  background-color: #d5f4e6;
+  color: #27ae60;
+}
+
+.badge.sell {
+  background-color: #fadbd8;
+  color: #c0392b;
+}
+
+.price {
+  font-family: 'Courier New', monospace;
+  text-align: right;
+}
+
+.quantity {
+  text-align: center;
+  font-weight: 600;
+}
+
+.pnl {
+  font-weight: 600;
+  text-align: right;
+}
+
+.pnl.positive {
+  color: #27ae60;
+}
+
+.pnl.negative {
+  color: #e74c3c;
+}
+
+.pnl.neutral {
+  color: #7f8c8d;
+}
+
+.strategy {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+}
