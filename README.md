@@ -122,21 +122,59 @@ cd frontend
 npm run dev
 ```
 
+## Dashboard
+
+The React dashboard displays:
+
+**Portfolio Overview**
+- Account balance
+- Daily P&L (profit/loss)
+- Win rate percentage
+- Active positions
+- Portfolio Greeks (delta, theta)
+- Consecutive losses counter
+
+**Performance Charts**
+- Cumulative P&L trend (line chart)
+- Daily wins vs losses (stacked bar chart)
+- Daily P&L bars
+
+**Recent Trades Table**
+- Trade history with timestamps
+- Entry/exit prices
+- Position quantities
+- P&L per trade
+- Trading strategy used
+
+**System Status**
+- Backend connection indicator
+- Alpaca Markets connection status
+- Database connection status
+- Real-time update frequency
+
+---
+
 ## Deployment
 
-### Backend (Railway)
+See [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) for complete instructions.
 
-1. Connect GitHub repo to Railway
-2. Set environment variables in Railway dashboard
-3. Railway auto-deploys on push to main
+### Quick Deploy
 
-### Frontend (Vercel)
+#### Backend (Railway)
 
-```bash
-cd frontend
-npm run build
-vercel deploy --prod
-```
+1. Push code to GitHub: `git push origin main`
+2. Connect repo to Railway at https://railway.app
+3. Set environment variables in Railway dashboard
+4. Railway auto-deploys on each push
+
+#### Frontend (Vercel)
+
+1. Push code to GitHub
+2. Connect repo to Vercel at https://vercel.com
+3. Set `REACT_APP_API_URL` environment variable
+4. Vercel auto-deploys on each push
+
+**Cost**: $0 for 4 weeks (Railway trial), then ~$5/month
 
 ## Important Notes
 
