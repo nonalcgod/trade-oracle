@@ -17,7 +17,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import LimitOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
 
-from models.trading import Signal, RiskApproval, Execution, Portfolio
+from models.trading import Signal, RiskApproval, Execution, Portfolio, Position, SignalType
 
 logger = structlog.get_logger()
 
@@ -73,45 +73,463 @@ class PortfolioResponse(BaseModel):
     portfolio: Portfolio
 
 
-async def log_trade_to_supabase(execution: Execution):
-    """Log trade execution to Supabase"""
+# ============================================================================
+# Position Tracking Functions
+# ============================================================================
+
+async def create_position(
+    symbol: str,
+    strategy: str,
+    position_type: str,
+    quantity: int,
+    entry_price: Decimal,
+    entry_trade_id: Optional[int] = None
+) -> Optional[int]:
+    """
+    Create a new open position in the database
+
+    Args:
+        symbol: Option symbol
+        strategy: Strategy name
+        position_type: 'long' or 'short'
+        quantity: Number of contracts
+        entry_price: Entry price per contract
+        entry_trade_id: Trade ID from trades table
+
+    Returns:
+        Position ID if successful, None otherwise
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, skipping position tracking")
+            return None
+
+        data = {
+            "symbol": symbol,
+            "strategy": strategy,
+            "position_type": position_type,
+            "quantity": quantity,
+            "entry_price": float(entry_price),
+            "entry_trade_id": entry_trade_id,
+            "current_price": float(entry_price),
+            "unrealized_pnl": 0.0,
+            "opened_at": datetime.utcnow().isoformat(),
+            "status": "open"
+        }
+
+        response = supabase.table("positions").insert(data).execute()
+
+        if response.data:
+            position_id = response.data[0]['id']
+            logger.info("Created position",
+                       position_id=position_id,
+                       symbol=symbol,
+                       type=position_type,
+                       quantity=quantity)
+            return position_id
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed to create position", error=str(e))
+        return None
+
+
+async def get_open_positions() -> list[Position]:
+    """
+    Fetch all open positions from database
+
+    Returns:
+        List of Position objects with status='open'
+    """
+    try:
+        if not supabase:
+            return []
+
+        response = supabase.table("positions")\
+            .select("*")\
+            .eq("status", "open")\
+            .execute()
+
+        if not response.data:
+            return []
+
+        positions = []
+        for row in response.data:
+            position = Position(
+                id=row['id'],
+                symbol=row['symbol'],
+                strategy=row['strategy'],
+                position_type=row['position_type'],
+                quantity=row['quantity'],
+                entry_price=Decimal(str(row['entry_price'])),
+                entry_trade_id=row.get('entry_trade_id'),
+                current_price=Decimal(str(row['current_price'])) if row.get('current_price') else None,
+                unrealized_pnl=Decimal(str(row['unrealized_pnl'])) if row.get('unrealized_pnl') else None,
+                opened_at=datetime.fromisoformat(row['opened_at'].replace('Z', '+00:00')),
+                status=row['status']
+            )
+            positions.append(position)
+
+        return positions
+
+    except Exception as e:
+        logger.error("Failed to fetch open positions", error=str(e))
+        return []
+
+
+async def update_position_status(
+    position_id: int,
+    status: str,
+    exit_trade_id: Optional[int] = None,
+    closed_at: Optional[datetime] = None,
+    exit_reason: Optional[str] = None
+) -> bool:
+    """
+    Update position status (close position)
+
+    Args:
+        position_id: Position ID to update
+        status: New status ('open' or 'closed')
+        exit_trade_id: Trade ID for exit
+        closed_at: Timestamp when closed
+        exit_reason: Reason for exit
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        if not supabase:
+            return False
+
+        data = {"status": status}
+
+        if exit_trade_id:
+            data["exit_trade_id"] = exit_trade_id
+
+        if closed_at:
+            data["closed_at"] = closed_at.isoformat()
+
+        if exit_reason:
+            data["exit_reason"] = exit_reason
+
+        supabase.table("positions")\
+            .update(data)\
+            .eq("id", position_id)\
+            .execute()
+
+        logger.info("Updated position status",
+                   position_id=position_id,
+                   status=status,
+                   reason=exit_reason)
+
+        return True
+
+    except Exception as e:
+        logger.error("Failed to update position status",
+                    position_id=position_id,
+                    error=str(e))
+        return False
+
+
+async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optional[int]:
+    """
+    Log trade execution to Supabase
+
+    Args:
+        execution: Execution details
+        signal: Trading signal
+
+    Returns:
+        Trade ID if successful, None otherwise
+    """
     try:
         if not supabase:
             logger.warning("Supabase not configured, skipping trade log")
-            return
-        
+            return None
+
         data = {
             "timestamp": execution.timestamp.isoformat(),
             "symbol": execution.symbol,
-            "strategy": "iv_mean_reversion",  # TODO: Get from signal
-            "signal_type": "buy",  # TODO: Get from signal
+            "strategy": signal.strategy,
+            "signal_type": signal.signal.value,
             "entry_price": float(execution.entry_price),
             "exit_price": float(execution.exit_price) if execution.exit_price else None,
             "quantity": execution.quantity,
             "pnl": float(execution.pnl) if execution.pnl else None,
             "commission": float(execution.commission),
             "slippage": float(execution.slippage),
-            "reasoning": ""  # TODO: Add signal reasoning
+            "reasoning": signal.reasoning
         }
-        
-        supabase.table("trades").insert(data).execute()
-        logger.info("Logged trade to Supabase", symbol=execution.symbol)
-        
+
+        response = supabase.table("trades").insert(data).execute()
+
+        if response.data:
+            trade_id = response.data[0]['id']
+            logger.info("Logged trade to Supabase",
+                       trade_id=trade_id,
+                       symbol=execution.symbol,
+                       signal=signal.signal.value)
+            return trade_id
+
+        return None
+
     except Exception as e:
         logger.error("Failed to log trade", error=str(e))
+        return None
 
 
 def calculate_slippage(expected_price: Decimal, actual_price: Decimal) -> Decimal:
     """
     Calculate slippage as percentage difference
-    
+
     Slippage % = (Actual - Expected) / Expected
     """
     if expected_price == 0:
         return Decimal('0')
-    
+
     slippage = (actual_price - expected_price) / expected_price
     return slippage
+
+
+def parse_option_symbol(symbol: str) -> dict:
+    """
+    Parse OCC option symbol format: AAPL251219C00150000
+
+    Returns:
+        dict with underlying, expiration, option_type, strike
+    """
+    try:
+        # Extract components from OCC format
+        underlying = symbol[:symbol.index(str(next(filter(str.isdigit, symbol))))]
+        date_start = len(underlying)
+        expiration_str = symbol[date_start:date_start+6]
+        option_type = symbol[date_start+6]
+        strike_str = symbol[date_start+7:]
+
+        # Parse expiration (YYMMDD)
+        from datetime import datetime
+        year = 2000 + int(expiration_str[:2])
+        month = int(expiration_str[2:4])
+        day = int(expiration_str[4:6])
+        expiration = datetime(year, month, day)
+
+        # Parse strike (8 digits, divide by 1000)
+        strike = Decimal(strike_str) / 1000
+
+        return {
+            'underlying': underlying,
+            'expiration': expiration,
+            'option_type': option_type,
+            'strike': strike
+        }
+    except Exception as e:
+        logger.error("Failed to parse option symbol", symbol=symbol, error=str(e))
+        return {}
+
+
+async def get_latest_tick(symbol: str):
+    """
+    Get latest option tick from database or fetch from Alpaca
+
+    Args:
+        symbol: Option symbol
+
+    Returns:
+        OptionTick with latest market data
+    """
+    try:
+        if not supabase:
+            return None
+
+        # Try to get from database first
+        response = supabase.table("option_ticks")\
+            .select("*")\
+            .eq("symbol", symbol)\
+            .order("timestamp", desc=True)\
+            .limit(1)\
+            .execute()
+
+        if response.data:
+            row = response.data[0]
+            from models.trading import OptionTick
+            parsed = parse_option_symbol(symbol)
+
+            tick = OptionTick(
+                symbol=symbol,
+                underlying_price=Decimal(str(row['underlying_price'])),
+                strike=Decimal(str(row['strike'])),
+                expiration=parsed.get('expiration', datetime.utcnow()),
+                bid=Decimal(str(row['bid'])),
+                ask=Decimal(str(row['ask'])),
+                delta=Decimal(str(row.get('delta', 0))),
+                gamma=Decimal(str(row.get('gamma', 0))),
+                theta=Decimal(str(row.get('theta', 0))),
+                vega=Decimal(str(row.get('vega', 0))),
+                iv=Decimal(str(row.get('iv', 0))),
+                timestamp=datetime.fromisoformat(row['timestamp'].replace('Z', '+00:00'))
+            )
+            return tick
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed to get latest tick", symbol=symbol, error=str(e))
+        return None
+
+
+async def is_earnings_blackout(symbol: str) -> bool:
+    """
+    Check if underlying has earnings within 2 days
+
+    TODO: Integrate with earnings calendar API
+    For now, returns False (no blackout)
+
+    Args:
+        symbol: Option symbol
+
+    Returns:
+        True if earnings within 2 days, False otherwise
+    """
+    # TODO: Implement earnings check using a calendar API
+    # For now, assume no earnings blackout
+    return False
+
+
+async def check_exit_conditions(position: Position) -> Optional[str]:
+    """
+    Check if position should be exited based on P&L or DTE
+
+    Args:
+        position: Position to evaluate
+
+    Returns:
+        Exit reason if should exit, None otherwise
+    """
+    try:
+        # Get current price
+        latest_tick = await get_latest_tick(position.symbol)
+        if not latest_tick:
+            logger.warning("No tick data for position", symbol=position.symbol)
+            return None
+
+        current_price = (latest_tick.bid + latest_tick.ask) / 2
+
+        # Calculate P&L percentage
+        if position.position_type == "long":
+            pnl_pct = (current_price - position.entry_price) / position.entry_price
+        else:  # short
+            pnl_pct = (position.entry_price - current_price) / position.entry_price
+
+        # Exit condition: 50% profit target
+        if pnl_pct >= Decimal('0.50'):
+            return "50% profit target reached"
+
+        # Exit condition: 75% stop loss
+        if pnl_pct <= Decimal('-0.75'):
+            return "75% stop loss hit"
+
+        # Exit condition: 21 DTE threshold
+        parsed = parse_option_symbol(position.symbol)
+        if parsed:
+            expiration = parsed.get('expiration')
+            if expiration:
+                dte = (expiration - datetime.now()).days
+                if dte <= 21:
+                    return "21 DTE threshold reached"
+
+        # Exit condition: Earnings blackout
+        if await is_earnings_blackout(position.symbol):
+            return "Earnings within 2 days"
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed to check exit conditions",
+                    position_id=position.id,
+                    error=str(e))
+        return None
+
+
+async def close_position(position: Position) -> OrderResponse:
+    """
+    Close an open position by placing opposite order
+
+    Args:
+        position: Position to close
+
+    Returns:
+        OrderResponse with close execution details
+    """
+    try:
+        # Determine order side for closing
+        if position.position_type == "long":
+            side = OrderSide.SELL  # Sell to close long
+            signal_type = SignalType.CLOSE_LONG
+        else:
+            side = OrderSide.BUY   # Buy to close short
+            signal_type = SignalType.CLOSE_SHORT
+
+        # Get current price for limit order
+        latest_tick = await get_latest_tick(position.symbol)
+        if not latest_tick:
+            return OrderResponse(
+                success=False,
+                message=f"Cannot get current price for {position.symbol}"
+            )
+
+        limit_price = latest_tick.ask if side == OrderSide.BUY else latest_tick.bid
+
+        # Create close signal
+        close_signal = Signal(
+            symbol=position.symbol,
+            signal=signal_type,
+            strategy=position.strategy,
+            confidence=1.0,
+            entry_price=limit_price,
+            stop_loss=Decimal('0'),
+            take_profit=Decimal('0'),
+            reasoning="Automated position exit",
+            timestamp=datetime.utcnow()
+        )
+
+        # Execute close order
+        result = await place_limit_order(close_signal, position.quantity)
+
+        if result.success:
+            # Calculate P&L
+            if position.position_type == "long":
+                pnl = (limit_price - position.entry_price) * position.quantity * 100
+            else:  # short
+                pnl = (position.entry_price - limit_price) * position.quantity * 100
+
+            # Get trade_id from result
+            trade_id = await log_trade_to_supabase(result.execution, close_signal)
+
+            # Mark position as closed
+            await update_position_status(
+                position.id,
+                status='closed',
+                exit_trade_id=trade_id,
+                closed_at=datetime.utcnow(),
+                exit_reason="Automated exit"
+            )
+
+            logger.info("Position closed",
+                       position_id=position.id,
+                       symbol=position.symbol,
+                       pnl=float(pnl))
+
+        return result
+
+    except Exception as e:
+        logger.error("Failed to close position",
+                    position_id=position.id,
+                    error=str(e))
+        return OrderResponse(
+            success=False,
+            message=f"Failed to close position: {str(e)}"
+        )
 
 
 async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
@@ -173,10 +591,26 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
             slippage=slippage,
             timestamp=datetime.utcnow()
         )
-        
-        # Log to Supabase
-        await log_trade_to_supabase(execution)
-        
+
+        # Log to Supabase and get trade ID
+        trade_id = await log_trade_to_supabase(execution, signal)
+
+        # Track position if opening (BUY or SELL)
+        if signal.signal in [SignalType.BUY, SignalType.SELL]:
+            position_type = "long" if signal.signal == SignalType.BUY else "short"
+            await create_position(
+                symbol=signal.symbol,
+                strategy=signal.strategy,
+                position_type=position_type,
+                quantity=quantity,
+                entry_price=actual_price,
+                entry_trade_id=trade_id
+            )
+            logger.info("Position opened",
+                       symbol=signal.symbol,
+                       type=position_type,
+                       quantity=quantity)
+
         return OrderResponse(
             success=True,
             execution=execution,
@@ -465,6 +899,65 @@ async def get_performance():
     except Exception as e:
         logger.error("Error calculating performance", error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to calculate performance: {str(e)}")
+
+
+@router.get("/positions")
+async def get_positions(status: str = "open", limit: int = 50):
+    """
+    Get positions from database
+
+    Args:
+        status: Filter by status ('open', 'closed', or 'all')
+        limit: Maximum number of positions to return (default 50)
+
+    Returns:
+        List of positions ordered by opened_at descending
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, returning empty positions")
+            return []
+
+        query = supabase.table("positions").select("*")
+
+        if status != "all":
+            query = query.eq("status", status)
+
+        response = query.order("opened_at", desc=True).limit(limit).execute()
+        return response.data
+
+    except Exception as e:
+        logger.error("Error fetching positions", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to fetch positions: {str(e)}")
+
+
+@router.get("/positions/{position_id}")
+async def get_position_by_id(position_id: int):
+    """
+    Get specific position by ID
+
+    Args:
+        position_id: Position ID from database
+
+    Returns:
+        Position details with entry/exit trades
+    """
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Database not configured")
+
+        response = supabase.table("positions").select("*").eq("id", position_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail=f"Position {position_id} not found")
+
+        return response.data[0]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error fetching position", position_id=position_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to fetch position: {str(e)}")
 
 
 @router.get("/health")

@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import structlog
 import os
+import asyncio
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -101,7 +102,7 @@ async def startup_event():
     logger.info("Trade Oracle starting up",
                environment=os.getenv("ENVIRONMENT", "development"),
                paper_trading=True)
-    
+
     # Verify environment variables
     required_vars = [
         "ALPACA_API_KEY",
@@ -109,13 +110,18 @@ async def startup_event():
         "SUPABASE_URL",
         "SUPABASE_KEY"
     ]
-    
+
     missing_vars = [var for var in required_vars if not os.getenv(var)]
-    
+
     if missing_vars:
         logger.warning("Missing environment variables", missing=missing_vars)
     else:
         logger.info("All environment variables configured")
+
+    # Start position monitor background task
+    from monitoring.position_monitor import monitor_positions
+    asyncio.create_task(monitor_positions())
+    logger.info("Position monitor started")
 
 
 @app.on_event("shutdown")

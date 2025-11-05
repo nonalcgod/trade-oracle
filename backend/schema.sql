@@ -97,10 +97,34 @@ FROM trades
 ORDER BY timestamp DESC
 LIMIT 100;
 
+-- Table: positions
+-- Track open and closed positions with full lifecycle
+CREATE TABLE IF NOT EXISTS positions (
+    id SERIAL PRIMARY KEY,
+    symbol TEXT NOT NULL,
+    strategy TEXT NOT NULL,
+    position_type TEXT NOT NULL,  -- 'long' or 'short'
+    quantity INTEGER NOT NULL,
+    entry_price NUMERIC(10,4),
+    entry_trade_id INTEGER REFERENCES trades(id),
+    current_price NUMERIC(10,4),
+    unrealized_pnl NUMERIC(12,2),
+    opened_at TIMESTAMPTZ DEFAULT NOW(),
+    closed_at TIMESTAMPTZ,
+    exit_trade_id INTEGER REFERENCES trades(id),
+    exit_reason TEXT,
+    status TEXT DEFAULT 'open'  -- 'open' or 'closed'
+);
+
+-- Indexes for position queries
+CREATE INDEX IF NOT EXISTS idx_positions_open ON positions(status) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS idx_positions_symbol ON positions(symbol);
+CREATE INDEX IF NOT EXISTS idx_positions_opened ON positions(opened_at DESC);
+
 -- View: strategy_performance
 -- Aggregate statistics by strategy
 CREATE OR REPLACE VIEW strategy_performance AS
-SELECT 
+SELECT
     strategy,
     COUNT(*) as total_trades,
     SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END)::FLOAT / COUNT(*) as win_rate,

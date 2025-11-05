@@ -6,8 +6,10 @@ from enum import Enum
 
 
 class SignalType(str, Enum):
-    BUY = "buy"
-    SELL = "sell"
+    BUY = "buy"              # Buy to open (long position)
+    SELL = "sell"            # Sell to open (short position)
+    CLOSE_LONG = "close_long"      # Sell to close long position
+    CLOSE_SHORT = "close_short"    # Buy to close short position
 
 
 class OptionTick(BaseModel):
@@ -83,3 +85,21 @@ class Execution(BaseModel):
     commission: Decimal = Decimal('0')
     slippage: Decimal = Decimal('0')
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Position(BaseModel):
+    """Open or closed position with full lifecycle tracking"""
+    id: Optional[int] = None
+    symbol: str
+    strategy: str
+    position_type: str  # 'long' or 'short'
+    quantity: int
+    entry_price: Decimal
+    entry_trade_id: Optional[int] = None
+    current_price: Optional[Decimal] = None
+    unrealized_pnl: Optional[Decimal] = None
+    opened_at: datetime = Field(default_factory=datetime.utcnow)
+    closed_at: Optional[datetime] = None
+    exit_trade_id: Optional[int] = None
+    exit_reason: Optional[str] = None
+    status: str = "open"  # 'open' or 'closed'
