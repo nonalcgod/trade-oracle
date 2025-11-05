@@ -60,3 +60,4 @@ backtest/cache/
 backtest/*.csv
 backtest/*.json
 
+.vercel
