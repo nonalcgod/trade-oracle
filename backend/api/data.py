@@ -13,7 +13,7 @@ import os
 from typing import Optional
 import asyncio
 from alpaca.data.live import StockDataStream
-from alpaca.data.historical import OptionHistoricalDataClient
+from alpaca.data.historical.option import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 from supabase import create_client, Client
 import structlog
