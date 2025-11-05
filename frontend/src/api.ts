@@ -58,6 +58,19 @@ export interface HealthStatus {
   paper_trading: boolean;
 }
 
+export interface Position {
+  id: number;
+  symbol: string;
+  strategy: string;
+  position_type: 'long' | 'short';
+  quantity: number;
+  entry_price: number;
+  current_price: number;
+  unrealized_pnl: number;
+  opened_at: string;
+  status: string;
+}
+
 // API Service Functions
 export const apiService = {
   // Health & Status
@@ -133,6 +146,27 @@ export const apiService = {
   async getOptionData(symbol: string) {
     const response = await api.get(`/api/data/option/${symbol}`);
     return response.data;
+  },
+
+  // Positions
+  async getPositions(): Promise<Position[]> {
+    const response = await api.get('/api/execution/positions');
+    return response.data.map((pos: any) => ({
+      ...pos,
+      entry_price: parseFloat(pos.entry_price),
+      current_price: parseFloat(pos.current_price),
+      unrealized_pnl: parseFloat(pos.unrealized_pnl),
+    }));
+  },
+
+  async getPositionById(id: number): Promise<Position> {
+    const response = await api.get(`/api/execution/positions/${id}`);
+    return {
+      ...response.data,
+      entry_price: parseFloat(response.data.entry_price),
+      current_price: parseFloat(response.data.current_price),
+      unrealized_pnl: parseFloat(response.data.unrealized_pnl),
+    };
   },
 };
 

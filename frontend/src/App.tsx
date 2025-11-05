@@ -3,11 +3,13 @@ import './App.css'
 import Portfolio from './components/Portfolio'
 import Trades from './components/Trades'
 import Charts from './components/Charts'
-import { apiService, handleApiError, PortfolioData, Trade, HealthStatus } from './api'
+import Positions from './components/Positions'
+import { apiService, handleApiError, PortfolioData, Trade, HealthStatus, Position } from './api'
 
 function App() {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
   const [trades, setTrades] = useState<Trade[]>([])
+  const [positions, setPositions] = useState<Position[]>([])
   const [health, setHealth] = useState<HealthStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -17,14 +19,16 @@ function App() {
   const fetchData = async () => {
     try {
       setError(null)
-      const [portfolioData, tradesData, healthData] = await Promise.all([
+      const [portfolioData, tradesData, positionsData, healthData] = await Promise.all([
         apiService.getPortfolio(),
         apiService.getTrades(50),
+        apiService.getPositions(),
         apiService.getHealth(),
       ])
 
       setPortfolio(portfolioData)
       setTrades(tradesData)
+      setPositions(positionsData)
       setHealth(healthData)
       setLastUpdate(new Date())
     } catch (err) {
@@ -96,6 +100,7 @@ function App() {
         {portfolio && (
           <>
             <Portfolio portfolio={portfolio} />
+            <Positions positions={positions} loading={loading} />
             <Charts trades={trades} />
             <Trades trades={trades} loading={loading} />
           </>
