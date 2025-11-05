@@ -48,7 +48,7 @@ app.add_middleware(
 )
 
 # Import routers
-from api import data, strategies, risk, execution, testing
+from api import data, strategies, risk, execution, testing, iron_condor
 
 # Register routers
 app.include_router(data.router)
@@ -56,6 +56,7 @@ app.include_router(strategies.router)
 app.include_router(risk.router)
 app.include_router(execution.router)
 app.include_router(testing.router)
+app.include_router(iron_condor.router)
 
 
 @app.get("/")
@@ -63,16 +64,18 @@ async def root():
     """Root endpoint with API information"""
     return {
         "name": "Trade Oracle",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "running",
-        "strategy": "IV Mean Reversion",
+        "strategies": ["IV Mean Reversion", "0DTE Iron Condor"],
         "paper_trading": True,
         "endpoints": {
             "docs": "/docs",
             "data": "/api/data",
             "strategies": "/api/strategies",
             "risk": "/api/risk",
-            "execution": "/api/execution"
+            "execution": "/api/execution",
+            "iron_condor": "/api/iron-condor",
+            "testing": "/api/testing"
         }
     }
 

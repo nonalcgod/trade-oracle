@@ -14,10 +14,11 @@ import os
 import structlog
 from supabase import create_client, Client
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import LimitOrderRequest
-from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.trading.requests import LimitOrderRequest, OrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass
 
 from models.trading import Signal, RiskApproval, Execution, Portfolio, Position, SignalType
+from models.strategies import OptionLeg, MultiLegOrder
 
 logger = structlog.get_logger()
 
@@ -626,6 +627,105 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
         )
 
 
+async def place_multi_leg_order(multi_leg: MultiLegOrder) -> OrderResponse:
+    """
+    Place a multi-leg options order (spread, condor, butterfly, etc.)
+
+    Args:
+        multi_leg: MultiLegOrder with all legs configured
+
+    Returns:
+        OrderResponse with execution details
+    """
+    try:
+        if not trading_client:
+            raise HTTPException(status_code=500, detail="Trading client not initialized")
+
+        # Alpaca supports multi-leg orders via OrderClass.BRACKET
+        # For iron condors and spreads, we'll submit each leg individually but link them
+        # TODO: Investigate if Alpaca has native multi-leg order support
+
+        # For now, submit legs sequentially
+        all_legs_filled = []
+        total_cost = Decimal('0')
+
+        for leg in multi_leg.legs:
+            # Determine order side
+            side = OrderSide.BUY if leg.side == "buy" else OrderSide.SELL
+
+            # Create limit order for this leg
+            limit_price = float(leg.limit_price) if leg.limit_price else None
+
+            if not limit_price:
+                # Use market mid if no limit specified
+                # In production, fetch current quotes
+                raise ValueError(f"Limit price required for leg {leg.symbol}")
+
+            order_request = LimitOrderRequest(
+                symbol=leg.symbol,
+                qty=leg.quantity,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+                limit_price=limit_price
+            )
+
+            # Submit order
+            order = trading_client.submit_order(order_request)
+
+            logger.info("Multi-leg order leg submitted",
+                       strategy=multi_leg.strategy_type,
+                       symbol=leg.symbol,
+                       side=side.value,
+                       quantity=leg.quantity,
+                       order_id=order.id)
+
+            all_legs_filled.append({
+                "symbol": leg.symbol,
+                "side": leg.side,
+                "quantity": leg.quantity,
+                "price": leg.limit_price,
+                "order_id": str(order.id)
+            })
+
+            # Calculate cost (credit vs debit)
+            if leg.side == "sell":
+                total_cost -= leg.limit_price * leg.quantity * 100
+            else:  # buy
+                total_cost += leg.limit_price * leg.quantity * 100
+
+        # Calculate commission: $0.65 per contract per leg
+        total_contracts = sum(leg.quantity for leg in multi_leg.legs)
+        commission = Decimal('0.65') * total_contracts
+
+        # Create combined execution record
+        # Use first leg symbol as representative
+        first_leg = multi_leg.legs[0]
+        execution = Execution(
+            symbol=f"{multi_leg.strategy_type}_{first_leg.symbol[:3]}",  # e.g., "iron_condor_SPY"
+            quantity=first_leg.quantity,  # Reference quantity
+            entry_price=abs(total_cost / (first_leg.quantity * 100)),  # Per-contract net cost
+            commission=commission,
+            slippage=Decimal('0'),  # TODO: Calculate from actual fills
+            timestamp=datetime.utcnow()
+        )
+
+        return OrderResponse(
+            success=True,
+            execution=execution,
+            alpaca_order_id=",".join([leg["order_id"] for leg in all_legs_filled]),
+            message=f"Multi-leg {multi_leg.strategy_type} placed: {len(multi_leg.legs)} legs"
+        )
+
+    except Exception as e:
+        logger.error("Failed to place multi-leg order",
+                    strategy=multi_leg.strategy_type,
+                    error=str(e))
+        return OrderResponse(
+            success=False,
+            message=f"Multi-leg order failed: {str(e)}"
+        )
+
+
 async def get_current_portfolio() -> Portfolio:
     """
     Fetch current portfolio state from Alpaca
@@ -714,10 +814,10 @@ async def get_current_portfolio() -> Portfolio:
 async def execute_order(request: OrderRequest) -> OrderResponse:
     """
     Execute a trade based on signal and risk approval
-    
+
     Args:
         request: Contains signal and risk approval
-    
+
     Returns:
         OrderResponse with execution details
     """
@@ -728,14 +828,34 @@ async def execute_order(request: OrderRequest) -> OrderResponse:
                 success=False,
                 message=f"Trade not approved: {request.approval.reasoning}"
             )
-        
+
         # Place limit order
         response = await place_limit_order(request.signal, request.approval.position_size)
-        
+
         return response
-        
+
     except Exception as e:
         logger.error("Error in execute_order", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/order/multi-leg")
+async def execute_multi_leg_order(multi_leg: MultiLegOrder) -> OrderResponse:
+    """
+    Execute a multi-leg options order (spread, condor, butterfly, etc.)
+
+    Args:
+        multi_leg: MultiLegOrder with all legs configured
+
+    Returns:
+        OrderResponse with execution details
+    """
+    try:
+        response = await place_multi_leg_order(multi_leg)
+        return response
+
+    except Exception as e:
+        logger.error("Error in execute_multi_leg_order", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 

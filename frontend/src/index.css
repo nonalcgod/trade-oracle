@@ -1,16 +1,19 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@theme {
+  --color-cream: #F5F1E8;
+  --color-gray-warm: #6B7280;
+  --color-emerald: #10B981;
+  --color-rose: #EF4444;
+  --color-teal: #14B8A6;
+  --color-amber: #F59E0B;
+  --color-black: #1A1A1A;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
 }
 
 * {
@@ -19,24 +22,46 @@
   padding: 0;
 }
 
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
+  background-color: var(--color-cream);
+  color: var(--color-black);
+  font-family: var(--font-sans);
   margin: 0;
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 2.5em;
-  line-height: 1.1;
-  margin-bottom: 0.5em;
+/* Custom scrollbar for cream background */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-h2 {
-  font-size: 1.8em;
-  margin-bottom: 0.5em;
+::-webkit-scrollbar-track {
+  background-color: var(--color-cream);
 }
 
-h3 {
-  font-size: 1.3em;
-  margin-bottom: 0.5em;
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-warm);
+  border-radius: 9999px;
 }
 
+/* Pulse animation for status dots */
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

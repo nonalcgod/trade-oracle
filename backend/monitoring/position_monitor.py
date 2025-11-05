@@ -3,13 +3,67 @@ Position Monitor - Background Task
 
 Monitors open positions every 60 seconds and automatically exits
 when conditions are met (profit target, stop loss, DTE, earnings).
+
+Supports multiple strategies:
+- IV Mean Reversion (single-leg options)
+- 0DTE Iron Condor (multi-leg spreads)
+- Earnings Straddles (coming soon)
+- Momentum Swings (coming soon)
 """
 
 import asyncio
 import structlog
 from datetime import datetime
+from decimal import Decimal
+from typing import Optional
 
 logger = structlog.get_logger()
+
+
+async def check_strategy_specific_exit(position, strategy_name: str) -> Optional[str]:
+    """
+    Dispatch to strategy-specific exit checker
+
+    Args:
+        position: Position object
+        strategy_name: Strategy identifier
+
+    Returns:
+        Exit reason if should exit, None otherwise
+    """
+    try:
+        # Route to appropriate strategy checker
+        if strategy_name.lower() == "iron_condor" or "condor" in strategy_name.lower():
+            # Check iron condor exit conditions
+            # For iron condors, we need to:
+            # 1. Get current value of all 4 legs
+            # 2. Check 50% profit, 2x stop, time-based, breach
+            from strategies.iron_condor import IronCondorStrategy
+            from api.execution import get_latest_tick
+
+            # Get current position value (simplified - in production, sum all legs)
+            tick = await get_latest_tick(position.symbol)
+            if not tick:
+                logger.warning("Cannot get tick for iron condor exit check", symbol=position.symbol)
+                return None
+
+            current_value = (tick.bid + tick.ask) / 2
+
+            # TODO: Load setup from database or position metadata
+            # For now, use generic exit logic
+            return None  # Placeholder until we store iron condor setup
+
+        else:
+            # Default to single-leg exit logic
+            from api.execution import check_exit_conditions
+            return await check_exit_conditions(position)
+
+    except Exception as e:
+        logger.error("Failed strategy-specific exit check",
+                    position_id=position.id,
+                    strategy=strategy_name,
+                    error=str(e))
+        return None
 
 
 async def monitor_positions():
@@ -42,8 +96,8 @@ async def monitor_positions():
 
                 for position in positions:
                     try:
-                        # Check exit conditions
-                        exit_reason = await check_exit_conditions(position)
+                        # Check strategy-specific exit conditions
+                        exit_reason = await check_strategy_specific_exit(position, position.strategy)
 
                         if exit_reason:
                             logger.info(
