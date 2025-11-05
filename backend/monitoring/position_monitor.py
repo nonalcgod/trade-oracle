@@ -35,23 +35,105 @@ async def check_strategy_specific_exit(position, strategy_name: str) -> Optional
         # Route to appropriate strategy checker
         if strategy_name.lower() == "iron_condor" or "condor" in strategy_name.lower():
             # Check iron condor exit conditions
-            # For iron condors, we need to:
-            # 1. Get current value of all 4 legs
-            # 2. Check 50% profit, 2x stop, time-based, breach
-            from strategies.iron_condor import IronCondorStrategy
             from api.execution import get_latest_tick
+            import pytz
+            from datetime import time
 
-            # Get current position value (simplified - in production, sum all legs)
-            tick = await get_latest_tick(position.symbol)
-            if not tick:
-                logger.warning("Cannot get tick for iron condor exit check", symbol=position.symbol)
+            # Validate position has legs data
+            if not position.legs or len(position.legs) < 4:
+                logger.warning("Iron condor position missing legs data",
+                             position_id=position.id,
+                             legs_count=len(position.legs) if position.legs else 0)
                 return None
 
-            current_value = (tick.bid + tick.ask) / 2
+            # Fetch current prices for all 4 legs
+            leg_values = []
+            for leg_data in position.legs:
+                tick = await get_latest_tick(leg_data['symbol'])
+                if not tick:
+                    logger.warning("Cannot get tick for leg",
+                                 symbol=leg_data['symbol'],
+                                 position_id=position.id)
+                    return None
 
-            # TODO: Load setup from database or position metadata
-            # For now, use generic exit logic
-            return None  # Placeholder until we store iron condor setup
+                current_price = (tick.bid + tick.ask) / 2
+
+                # Calculate leg value contribution
+                # Sell legs: negative (we owe money to close)
+                # Buy legs: positive (we receive money to close)
+                if leg_data['side'] == 'sell':
+                    leg_value = -(float(current_price) * leg_data['quantity'] * 100)
+                else:  # buy
+                    leg_value = float(current_price) * leg_data['quantity'] * 100
+
+                leg_values.append(leg_value)
+
+            # Sum all leg values to get net cost to close position
+            current_position_value = abs(sum(leg_values))
+
+            # Original credit received (entry_price stores net credit)
+            entry_credit = float(position.entry_price) * position.quantity * 100
+
+            # P&L = Credit Received - Cost to Close
+            pnl = entry_credit - current_position_value
+            pnl_pct = (pnl / entry_credit) if entry_credit > 0 else 0
+
+            logger.debug("Iron condor P&L calculated",
+                        position_id=position.id,
+                        entry_credit=entry_credit,
+                        current_value=current_position_value,
+                        pnl=pnl,
+                        pnl_pct=pnl_pct)
+
+            # Exit condition 1: 50% profit target
+            if pnl_pct >= 0.50:
+                return f"50% profit target reached ({pnl_pct*100:.1f}%)"
+
+            # Exit condition 2: 2x credit stop loss
+            if pnl <= -(entry_credit * 2):
+                return f"2x credit stop loss hit (${pnl:.2f} loss)"
+
+            # Exit condition 3: 3:50pm ET force close
+            eastern = pytz.timezone('US/Eastern')
+            now_et = datetime.now(eastern).time()
+            force_close_time = time(15, 50)  # 3:50pm ET
+
+            if now_et >= force_close_time:
+                return "3:50pm force close (10min before market close)"
+
+            # Exit condition 4: Breach detection (2% buffer)
+            # Extract underlying symbol from first leg
+            first_leg_symbol = position.legs[0]['symbol']
+            underlying_symbol = first_leg_symbol[:first_leg_symbol.index(next(filter(str.isdigit, first_leg_symbol)))]
+
+            # Get underlying price
+            underlying_tick = await get_latest_tick(underlying_symbol)
+            if underlying_tick:
+                underlying_price = (underlying_tick.bid + underlying_tick.ask) / 2
+
+                # Identify short strikes (legs 0 and 2 are typically short call/put)
+                short_call_strike = None
+                short_put_strike = None
+
+                for leg_data in position.legs:
+                    if leg_data['side'] == 'sell':
+                        if leg_data['option_type'] == 'call':
+                            short_call_strike = leg_data['strike']
+                        elif leg_data['option_type'] == 'put':
+                            short_put_strike = leg_data['strike']
+
+                # Check 2% breach buffer
+                if short_call_strike:
+                    call_distance = (short_call_strike - float(underlying_price)) / float(underlying_price)
+                    if call_distance <= 0.02:
+                        return f"Price breached call strike (distance: {call_distance*100:.1f}%)"
+
+                if short_put_strike:
+                    put_distance = (float(underlying_price) - short_put_strike) / float(underlying_price)
+                    if put_distance <= 0.02:
+                        return f"Price breached put strike (distance: {put_distance*100:.1f}%)"
+
+            return None  # No exit conditions met
 
         else:
             # Default to single-leg exit logic

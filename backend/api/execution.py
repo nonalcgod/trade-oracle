@@ -136,6 +136,80 @@ async def create_position(
         return None
 
 
+async def create_multi_leg_position(
+    multi_leg: MultiLegOrder,
+    entry_trade_id: Optional[int] = None
+) -> Optional[int]:
+    """
+    Create a multi-leg position in the database (iron condor, spreads, etc.)
+
+    Args:
+        multi_leg: MultiLegOrder with all legs configured
+        entry_trade_id: Trade ID from trades table
+
+    Returns:
+        Position ID if successful, None otherwise
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, skipping position tracking")
+            return None
+
+        # Prepare legs data for JSONB storage
+        legs_data = [
+            {
+                "symbol": leg.symbol,
+                "side": leg.side,
+                "option_type": leg.option_type,
+                "strike": float(leg.strike),
+                "quantity": leg.quantity,
+                "entry_price": float(leg.limit_price) if leg.limit_price else None
+            }
+            for leg in multi_leg.legs
+        ]
+
+        # Use first leg symbol to extract underlying (e.g., "SPY251219C00600000" -> "SPY")
+        first_symbol = multi_leg.legs[0].symbol
+        underlying = first_symbol[:first_symbol.index(next(filter(str.isdigit, first_symbol)))]
+        representative_symbol = f"{multi_leg.strategy_type}_{underlying}"
+
+        # Prepare position data
+        data = {
+            "symbol": representative_symbol,
+            "strategy": multi_leg.strategy_type,
+            "position_type": "spread",  # Generic type for multi-leg positions
+            "quantity": multi_leg.legs[0].quantity,  # Reference quantity (all legs same qty)
+            "entry_price": float(multi_leg.net_credit) if multi_leg.net_credit else 0.0,
+            "entry_trade_id": entry_trade_id,
+            "current_price": float(multi_leg.net_credit) if multi_leg.net_credit else 0.0,
+            "unrealized_pnl": 0.0,
+            "opened_at": datetime.utcnow().isoformat(),
+            "status": "open",
+            # Multi-leg specific fields
+            "legs": legs_data,
+            "net_credit": float(multi_leg.net_credit) if multi_leg.net_credit else None,
+            "max_loss": float(multi_leg.max_loss) if multi_leg.max_loss else None,
+            "spread_width": 5.0  # Default for SPY/QQQ (TODO: make configurable)
+        }
+
+        response = supabase.table("positions").insert(data).execute()
+
+        if response.data:
+            position_id = response.data[0]['id']
+            logger.info("Created multi-leg position",
+                       position_id=position_id,
+                       strategy=multi_leg.strategy_type,
+                       legs=len(multi_leg.legs),
+                       underlying=underlying)
+            return position_id
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed to create multi-leg position", error=str(e))
+        return None
+
+
 async def get_open_positions() -> list[Position]:
     """
     Fetch all open positions from database
@@ -277,6 +351,56 @@ async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optiona
 
     except Exception as e:
         logger.error("Failed to log trade", error=str(e))
+        return None
+
+
+async def log_multi_leg_trade_to_supabase(
+    execution: Execution,
+    multi_leg: MultiLegOrder
+) -> Optional[int]:
+    """
+    Log multi-leg trade execution to Supabase
+
+    Args:
+        execution: Combined execution record
+        multi_leg: Multi-leg order details
+
+    Returns:
+        Trade ID if successful, None otherwise
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, skipping trade log")
+            return None
+
+        data = {
+            "timestamp": execution.timestamp.isoformat(),
+            "symbol": execution.symbol,  # e.g., "iron_condor_SPY"
+            "strategy": multi_leg.strategy_type,
+            "signal_type": "open_multi_leg",  # Custom signal type for spreads
+            "entry_price": float(execution.entry_price),  # Net credit/debit per contract
+            "exit_price": None,
+            "quantity": execution.quantity,  # Reference quantity
+            "pnl": None,
+            "commission": float(execution.commission),
+            "slippage": float(execution.slippage),
+            "reasoning": f"{multi_leg.strategy_type} with {len(multi_leg.legs)} legs"
+        }
+
+        response = supabase.table("trades").insert(data).execute()
+
+        if response.data:
+            trade_id = response.data[0]['id']
+            logger.info("Logged multi-leg trade to Supabase",
+                       trade_id=trade_id,
+                       strategy=multi_leg.strategy_type,
+                       legs=len(multi_leg.legs))
+            return trade_id
+
+        return None
+
+    except Exception as e:
+        logger.error("Failed to log multi-leg trade", error=str(e))
         return None
 
 
@@ -708,6 +832,22 @@ async def place_multi_leg_order(multi_leg: MultiLegOrder) -> OrderResponse:
             slippage=Decimal('0'),  # TODO: Calculate from actual fills
             timestamp=datetime.utcnow()
         )
+
+        # Log multi-leg trade to Supabase
+        trade_id = await log_multi_leg_trade_to_supabase(execution, multi_leg)
+
+        # Create multi-leg position in database
+        if trade_id:
+            position_id = await create_multi_leg_position(multi_leg, entry_trade_id=trade_id)
+            if position_id:
+                logger.info("Multi-leg position tracked in database",
+                           position_id=position_id,
+                           trade_id=trade_id,
+                           strategy=multi_leg.strategy_type)
+            else:
+                logger.warning("Failed to create position record for multi-leg order")
+        else:
+            logger.warning("Failed to log multi-leg trade to database")
 
         return OrderResponse(
             success=True,

@@ -92,7 +92,7 @@ class Position(BaseModel):
     id: Optional[int] = None
     symbol: str
     strategy: str
-    position_type: str  # 'long' or 'short'
+    position_type: str  # 'long', 'short', 'spread', 'iron_condor', 'straddle', 'strangle'
     quantity: int
     entry_price: Decimal
     entry_trade_id: Optional[int] = None
@@ -103,3 +103,9 @@ class Position(BaseModel):
     exit_trade_id: Optional[int] = None
     exit_reason: Optional[str] = None
     status: str = "open"  # 'open' or 'closed'
+
+    # Multi-leg position fields (for iron condors, spreads, etc.)
+    legs: Optional[list] = None  # JSONB array of leg data
+    net_credit: Optional[Decimal] = None  # Net credit received or debit paid
+    max_loss: Optional[Decimal] = None  # Maximum loss per position
+    spread_width: Optional[Decimal] = None  # Width of spread in dollars
