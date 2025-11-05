@@ -419,12 +419,24 @@ All tools share the same files - they can read each other's work!
 - ✅ Use supabase==2.15.1 (proven stable version)
 - ✅ Railway port 8080 for application binding
 - ✅ Separate requirements.txt (local) from requirements-railway.txt (production)
+- ✅ Deploy Vercel from `frontend/` subdirectory (not repository root)
+
+**Vercel Deployment Configuration:**
+The repository has a monorepo structure with `backend/` and `frontend/` subdirectories. Vercel must be deployed from the `frontend/` directory:
+
+```bash
+cd frontend
+vercel link --project trade-oracle
+vercel --prod
+```
+
+**Critical**: Do NOT deploy from repository root - the frontend app lives in `/frontend` subdirectory.
 
 **Production URLs:**
 - **Backend**: https://trade-oracle-production.up.railway.app
 - **Health Check**: https://trade-oracle-production.up.railway.app/health
 - **API Docs**: https://trade-oracle-production.up.railway.app/docs
-- **Frontend**: https://frontend-nine-mocha-75.vercel.app
+- **Frontend**: https://trade-oracle-lac.vercel.app
 
 **Next Steps:**
 1. ✅ COMPLETE: Railway backend fully operational
