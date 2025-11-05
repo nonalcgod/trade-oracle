@@ -1,6 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**Auto-Loading Context File for Claude Code CLI** | Last Updated: 2025-11-04
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It automatically loads when launching Claude Code in this directory, maintaining persistent context across all sessions.
+
+> 💡 **NetworkChuck's Terminal AI Workflow**: This file follows the persistent context pattern - no more re-explaining the project every session!
 
 ## Project Overview
 
@@ -216,3 +220,178 @@ Add additional origins as needed for staging environments.
 - Always run backtests before deploying new parameters or strategies.
 - Monitor free tier limits: Supabase (500MB), Railway ($5/month after trial).
 - Commission is $0.65 per contract, slippage assumed at 1% in backtests.
+
+---
+
+## 🤖 Terminal AI Workflow (NetworkChuck Method)
+
+This project uses terminal-based AI following NetworkChuck's methodology for persistent context and specialized agents.
+
+### Core Principles
+
+**1. Persistent Context** - This CLAUDE.md file auto-loads every Claude Code session
+**2. Specialized Agents** - Deploy AI workers with fresh 200K token contexts
+**3. File Ownership** - Your work lives locally, not in browser chats
+**4. Multi-Tool Workflow** - Run Claude, Gemini, Codex simultaneously on same project
+**5. Version Control** - Commit everything to git with descriptive messages
+
+### Available Claude Code Agents
+
+Located in `.claude/agents/` directory:
+
+**@railway-deployment-expert** - Railway platform specialist
+- Troubleshoots Railway deployment issues (502, 500 errors)
+- Validates Dockerfile and railway.json configurations
+- Checks environment variables and service health
+- Uses context7 MCP for Railway operations
+- Ensures paper trading safety (ALPACA_BASE_URL verification)
+
+**@deployment-critic** - Brutal deployment reviewer
+- Reviews Dockerfile, railway.json, requirements.txt
+- Identifies security issues and misconfigurations
+- Checks for hardcoded secrets or exposed credentials
+- Validates Railway best practices compliance
+- Provides specific line-by-line feedback
+
+**@code-reviewer** - Backend code quality analyst
+- Reviews Python code in backend/api/ services
+- Checks Pydantic models and type safety
+- Identifies potential bugs and edge cases
+- Validates FastAPI route patterns
+- Ensures risk management rules are enforced
+
+**@session-closer** - Automated session management
+- Syncs context files (claude.md, gemini.md, agents.md)
+- Updates session summaries with progress
+- Commits changes to git with descriptive messages
+- Closes sessions cleanly with complete documentation
+
+### Quick Start Commands
+
+```bash
+# Launch Claude Code in this directory
+cd /Users/joshuajames/Projects/trade-oracle
+claude
+
+# Your context auto-loads! No re-explaining needed.
+
+# Deploy an agent for specialized tasks
+> @railway-deployment-expert check my Dockerfile configuration
+> @deployment-critic review my Railway setup
+> @code-reviewer analyze backend/api/risk.py
+
+# Update this context file
+> Update CLAUDE.md with today's progress and decisions
+
+# Close session properly
+> @session-closer wrap up today's work and commit
+```
+
+### Multi-Tool Workflow
+
+Run multiple AI tools simultaneously on this project:
+
+```bash
+# Terminal 1: Claude Code for development
+cd ~/Projects/trade-oracle
+claude
+> @code-reviewer check backend/api/data.py
+
+# Terminal 2: Gemini for research
+cd ~/Projects/trade-oracle
+gemini
+> Research best practices for FastAPI error handling
+
+# Terminal 3: Regular terminal for git/testing
+cd ~/Projects/trade-oracle
+git status
+./test-backend.sh
+```
+
+All tools share the same files - they can read each other's work!
+
+### Current Session Context
+
+**Project Phase:** Fixing Railway deployment (502 errors) → Stable production deployment
+
+**Recent Work (Nov 4, 2025):**
+- ✅ Fixed Hypercorn binding syntax: Changed invalid `[::]:$PORT` to `0.0.0.0:$PORT`
+- ✅ Upgraded Supabase to 2.23.x (fixed proxy argument error)
+- ✅ Added `--keep-alive-timeout 65` to prevent Railway load balancer 502s
+- ✅ Set `PYTHONUNBUFFERED=1` for immediate Railway log visibility
+- ✅ Completed Railway deployment audit (identified root causes)
+- ✅ MVP DEPLOYED: Added missing endpoints (trades, performance)
+- ✅ Fixed hardcoded underlying price - now fetches real Alpaca data
+- ✅ Cleaned up redundant documentation (10 files removed)
+
+**Git History Pattern:**
+- 20+ "fix" commits indicate deployment instability
+- Multiple attempts to resolve import errors, dependency conflicts
+- Switched from Nixpacks → venv → Dockerfile deployment methods
+- Latest commit: `fbb4978` - Supabase dependency fix
+
+**Key Decisions:**
+- Use Dockerfile (not Nixpacks) for Railway deployment
+- Use Hypercorn (not Uvicorn) for dual-stack IPv4/IPv6 binding
+- Separate requirements.txt (local) from requirements-railway.txt (production)
+- Exclude scipy/numpy from Railway to reduce Docker image size
+
+**Next Steps:**
+1. ✅ Railway deployment stable with MVP endpoints
+2. ✅ Health endpoint working
+3. ⏳ Connect Vercel frontend to Railway backend (set VITE_API_URL)
+4. ⏳ Test frontend dashboard loads without errors
+5. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
+
+### Agent Usage Tips (from NetworkChuck)
+
+1. **Name Agents by Function** - `railway-expert` not `agent1`
+2. **One Agent Per Specialty** - Deployment, code review, testing, docs
+3. **Delegate Strategically** - Use agents for reviews/research to save main context
+4. **Parallel Processing** - Run multiple agents simultaneously for different tasks
+5. **Fresh Context Advantage** - Each agent gets 200K tokens, no conversation bias
+
+### Session Management
+
+**Ending Sessions:**
+```bash
+# Always close properly with session-closer agent
+> @session-closer summarize today's work
+
+# It will:
+# 1. Gather everything discussed/changed
+# 2. Update this CLAUDE.md file
+# 3. Sync gemini.md and agents.md if using multi-tool
+# 4. Commit to git with descriptive message
+# 5. Prepare clean start for next session
+```
+
+**Starting Sessions:**
+```bash
+# Just launch Claude - context auto-loads!
+claude
+
+# Optional: Check where you left off
+> Where are we in the project? What's the current status?
+
+# Claude reads this file and knows everything
+```
+
+### Resources
+
+- NetworkChuck's "AI in the Terminal" video/guide
+- Railway Audit Report (Nov 4, 2025) - in project root
+- Claude Code docs: https://docs.claude.com/claude-code
+- Project Docs: README.md, DEPLOYMENT_GUIDE.md, QUICK_REFERENCE.md
+
+---
+
+**User Info:**
+- Claude Subscription: Claude Max ($200/month)
+- Full access to all Claude Code features including agents
+- Can run multiple agents in parallel
+- 200K token context window per agent
+
+---
+
+*This file is your project memory. Update it after every significant session. It auto-loads in Claude Code - never lose context again!*
