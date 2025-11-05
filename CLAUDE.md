@@ -393,9 +393,45 @@ All tools share the same files - they can read each other's work!
 
 ### Current Session Context
 
-**Project Phase:** 🎉 **MVP FULLY OPERATIONAL** - Trade Oracle successfully deployed to Railway after 25+ failed attempts!
+**Project Phase:** 🎉 **POSITION LIFECYCLE MANAGEMENT COMPLETE** - Full automated position monitoring deployed!
 
-**Recent Work (Nov 5, 2025 - FINAL BREAKTHROUGH):**
+**Recent Work (Nov 5, 2025 - Position Lifecycle Implementation):**
+- **FEATURE: Position Lifecycle Management** (commit cef2cca, 8adc660)
+  - Implemented full position lifecycle: BUY → MONITOR → CLOSE_LONG → CLOSED
+  - Created `positions` table with automated exit tracking (50% profit target, 75% stop loss)
+  - Built `position_monitor.py` background service (60-second polling)
+  - Added position endpoints: `/api/execution/positions` (list), `/api/execution/positions/{id}` (detail)
+  - Deployed to Railway successfully - monitor running in background
+
+**Exit Conditions (Hardcoded in monitor):**
+- **Profit Target**: 50% gain → automatic CLOSE_LONG signal
+- **Stop Loss**: 75% loss → automatic CLOSE_LONG signal
+- **Time Decay**: 21 DTE threshold → automatic CLOSE_LONG signal
+- **Earnings Blackout**: Stub created for future API integration (e.g., earnings-api.com)
+
+**Architecture Decisions:**
+- Monitor frequency: 60 seconds (balance between responsiveness and Railway resource usage)
+- Position tracking in database (not just Alpaca API) for historical analysis
+- Background service in FastAPI lifespan context (no separate worker process)
+- Exit signals logged to trades table with action="CLOSE_LONG" for audit trail
+
+**Database Schema Update Required:**
+User must apply `positions` table schema in Supabase SQL Editor (see APPLY_SCHEMA_NOW.md)
+
+**Files Created/Modified:**
+- `backend/schema.sql` - Added positions table with exit_conditions JSONB column
+- `backend/models/trading.py` - Added Position, PositionStatus, ExitReason models
+- `backend/api/execution.py` - Added position CRUD endpoints, refactored order execution
+- `backend/monitoring/position_monitor.py` - New background service for exit condition checking
+- `backend/main.py` - Integrated position_monitor in lifespan context
+- `POSITION_LIFECYCLE_DEPLOYMENT.md` - Complete implementation documentation
+- `APPLY_SCHEMA_NOW.md` - User action required guide
+
+**Git Commits:**
+- cef2cca: FEATURE: Full Position Lifecycle Management - BUY/SELL/CLOSE_LONG/CLOSE_SHORT
+- 8adc660: docs: Add comprehensive deployment guide for position lifecycle feature
+
+**Previous Session (Nov 5, 2025 - FINAL BREAKTHROUGH):**
 - **Deployment 19eec48e**: Initial investigation revealed "proxy parameter" runtime error in Supabase initialization
 - **Root Cause #1 - Supabase Proxy Bug**: Forcing `httpx==0.27.2` created incompatibility with supabase 2.15.1's internal proxy handling
   - **FIX**: Removed explicit httpx pin from Dockerfile, let supabase control httpx version
@@ -493,8 +529,10 @@ vercel --prod
 1. ✅ COMPLETE: Railway backend fully operational
 2. ✅ COMPLETE: Vercel frontend deployed and configured
 3. ✅ COMPLETE: End-to-end MVP testing with live paper trade
-4. 🔜 Monitor trade execution and P&L updates on dashboard
-5. 🔮 Implement Phase 4-5 features from SCALING_PLAN.md (WebSocket, real-time updates, enhanced charts)
+4. ✅ COMPLETE: Position lifecycle management with automated exit monitoring
+5. ⏳ **IMMEDIATE ACTION REQUIRED**: Apply positions table schema in Supabase SQL Editor (see APPLY_SCHEMA_NOW.md)
+6. 🔜 Update frontend dashboard to display active positions with exit condition progress bars
+7. 🔮 Implement Phase 4-5 features from SCALING_PLAN.md (WebSocket, real-time updates, enhanced charts)
 
 ### Agent Usage Tips (from NetworkChuck)
 
