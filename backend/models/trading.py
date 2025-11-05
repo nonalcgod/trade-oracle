@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
 from datetime import datetime
+from typing import Optional
 from enum import Enum
 
 
@@ -27,6 +28,11 @@ class OptionTick(BaseModel):
     def mid_price(self) -> Decimal:
         return (self.bid + self.ask) / 2
 
+    @property
+    def dte(self) -> int:
+        """Days to expiration"""
+        return (self.expiration - self.timestamp).days
+
 
 class Signal(BaseModel):
     symbol: str
@@ -37,6 +43,7 @@ class Signal(BaseModel):
     stop_loss: Decimal
     take_profit: Decimal
     reasoning: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class RiskApproval(BaseModel):
@@ -54,3 +61,25 @@ class Portfolio(BaseModel):
     delta: Decimal
     theta: Decimal
     active_positions: int
+    total_trades: int = 0
+
+
+class StrategyStats(BaseModel):
+    """Historical performance statistics for a trading strategy"""
+    strategy_name: str
+    win_rate: float = 0.0
+    avg_win: Decimal = Decimal('0')
+    avg_loss: Decimal = Decimal('0')
+    total_trades: int = 0
+
+
+class Execution(BaseModel):
+    """Trade execution record with P&L tracking"""
+    symbol: str
+    quantity: int
+    entry_price: Decimal
+    exit_price: Optional[Decimal] = None
+    pnl: Optional[Decimal] = None
+    commission: Decimal = Decimal('0')
+    slippage: Decimal = Decimal('0')
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
