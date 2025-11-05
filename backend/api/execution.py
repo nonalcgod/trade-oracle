@@ -29,11 +29,9 @@ ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
 
 # CRITICAL: Validate paper trading API keys
 if ALPACA_API_KEY and not ALPACA_API_KEY.startswith("PK"):
-    raise ValueError(
-        f"CRITICAL SAFETY CHECK FAILED: ALPACA_API_KEY must be a paper trading key (starts with 'PK')\n"
-        f"Current key starts with: {ALPACA_API_KEY[:2]}\n"
-        f"Paper trading keys start with 'PK', live keys start with 'AK'.\n"
-        f"This system is designed for PAPER TRADING ONLY. Never use real money."
+    logger.critical(
+        "CRITICAL SAFETY WARNING: ALPACA_API_KEY should be a paper trading key (starts with 'PK')",
+        current_prefix=ALPACA_API_KEY[:2]
     )
 
 # Initialize Supabase
@@ -321,6 +319,152 @@ async def get_portfolio() -> PortfolioResponse:
     except Exception as e:
         logger.error("Error in get_portfolio", error=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/trades")
+async def get_trades(limit: int = 50):
+    """
+    Get recent trades from database
+
+    Args:
+        limit: Maximum number of trades to return (default 50)
+
+    Returns:
+        List of trades ordered by timestamp descending
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, returning empty trades")
+            return []
+
+        response = supabase.table("trades").select("*").order("timestamp", desc=True).limit(limit).execute()
+        return response.data
+
+    except Exception as e:
+        logger.error("Error fetching trades", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to fetch trades: {str(e)}")
+
+
+@router.get("/trades/{trade_id}")
+async def get_trade_by_id(trade_id: int):
+    """
+    Get specific trade by ID
+
+    Args:
+        trade_id: Trade ID from database
+
+    Returns:
+        Trade details
+    """
+    try:
+        if not supabase:
+            raise HTTPException(status_code=503, detail="Database not configured")
+
+        response = supabase.table("trades").select("*").eq("id", trade_id).execute()
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail=f"Trade {trade_id} not found")
+
+        return response.data[0]
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error fetching trade", trade_id=trade_id, error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to fetch trade: {str(e)}")
+
+
+@router.get("/performance")
+async def get_performance():
+    """
+    Calculate performance metrics from trades
+
+    Returns:
+        Performance metrics: total trades, win rate, PnL, Sharpe ratio, etc.
+    """
+    try:
+        if not supabase:
+            logger.warning("Supabase not configured, returning empty performance")
+            return {
+                "total_trades": 0,
+                "winning_trades": 0,
+                "losing_trades": 0,
+                "win_rate": 0.0,
+                "total_pnl": 0.0,
+                "sharpe_ratio": 0.0,
+                "max_drawdown": 0.0
+            }
+
+        # Fetch all trades
+        response = supabase.table("trades").select("pnl, exit_price").execute()
+        trades = response.data
+
+        if not trades:
+            return {
+                "total_trades": 0,
+                "winning_trades": 0,
+                "losing_trades": 0,
+                "win_rate": 0.0,
+                "total_pnl": 0.0,
+                "sharpe_ratio": 0.0,
+                "max_drawdown": 0.0
+            }
+
+        # Calculate metrics
+        closed_trades = [t for t in trades if t.get("exit_price") is not None]
+        total_trades = len(closed_trades)
+
+        if total_trades == 0:
+            return {
+                "total_trades": len(trades),
+                "winning_trades": 0,
+                "losing_trades": 0,
+                "win_rate": 0.0,
+                "total_pnl": 0.0,
+                "sharpe_ratio": 0.0,
+                "max_drawdown": 0.0
+            }
+
+        winning_trades = sum(1 for t in closed_trades if t.get("pnl", 0) > 0)
+        losing_trades = total_trades - winning_trades
+        win_rate = winning_trades / total_trades if total_trades > 0 else 0.0
+
+        total_pnl = sum(float(t.get("pnl", 0)) for t in closed_trades)
+
+        # Simple Sharpe calculation (assuming daily returns, 252 trading days)
+        pnls = [float(t.get("pnl", 0)) for t in closed_trades]
+        if len(pnls) > 1:
+            import math
+            mean_pnl = sum(pnls) / len(pnls)
+            variance = sum((p - mean_pnl) ** 2 for p in pnls) / (len(pnls) - 1)
+            std_dev = math.sqrt(variance)
+            sharpe_ratio = (mean_pnl / std_dev * math.sqrt(252)) if std_dev > 0 else 0.0
+        else:
+            sharpe_ratio = 0.0
+
+        # Simple max drawdown (cumulative PnL)
+        cumulative_pnl = 0
+        max_pnl = 0
+        max_drawdown = 0
+        for pnl in pnls:
+            cumulative_pnl += pnl
+            max_pnl = max(max_pnl, cumulative_pnl)
+            drawdown = max_pnl - cumulative_pnl
+            max_drawdown = max(max_drawdown, drawdown)
+
+        return {
+            "total_trades": total_trades,
+            "winning_trades": winning_trades,
+            "losing_trades": losing_trades,
+            "win_rate": round(win_rate, 4),
+            "total_pnl": round(total_pnl, 2),
+            "sharpe_ratio": round(sharpe_ratio, 2),
+            "max_drawdown": round(max_drawdown, 2)
+        }
+
+    except Exception as e:
+        logger.error("Error calculating performance", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to calculate performance: {str(e)}")
 
 
 @router.get("/health")

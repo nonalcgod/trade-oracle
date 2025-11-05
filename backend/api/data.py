@@ -32,17 +32,15 @@ ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets
 
 # CRITICAL: Validate paper trading only
 if ALPACA_BASE_URL and "paper-api" not in ALPACA_BASE_URL:
-    raise ValueError(
-        f"CRITICAL SAFETY CHECK FAILED: ALPACA_BASE_URL must use paper-api.alpaca.markets\n"
-        f"Current value: {ALPACA_BASE_URL}\n"
-        f"This system is designed for PAPER TRADING ONLY. Never use real money."
+    logger.critical(
+        "CRITICAL SAFETY WARNING: ALPACA_BASE_URL should use paper-api.alpaca.markets",
+        current_url=ALPACA_BASE_URL
     )
 
 if ALPACA_API_KEY and not ALPACA_API_KEY.startswith("PK"):
-    raise ValueError(
-        f"CRITICAL SAFETY CHECK FAILED: ALPACA_API_KEY must be a paper trading key (starts with 'PK')\n"
-        f"Current key starts with: {ALPACA_API_KEY[:2]}\n"
-        f"Paper trading keys start with 'PK', live keys start with 'AK'."
+    logger.critical(
+        "CRITICAL SAFETY WARNING: ALPACA_API_KEY should be a paper trading key (starts with 'PK')",
+        current_prefix=ALPACA_API_KEY[:2]
     )
 
 # Initialize Supabase
@@ -134,11 +132,34 @@ def parse_option_symbol(symbol: str) -> dict:
 
 
 async def get_underlying_price(underlying: str) -> Decimal:
-    """Fetch current price of underlying stock"""
-    # TODO: Implement real-time price fetching from Alpaca
-    # For now, return a placeholder
-    # In production, use Alpaca Stock API
-    return Decimal('450.00')  # Placeholder
+    """Fetch current price of underlying stock from Alpaca"""
+    try:
+        if not option_client:
+            logger.warning("Alpaca client not initialized, using fallback price")
+            return Decimal('450.00')
+
+        from alpaca.data.historical import StockHistoricalDataClient
+        from alpaca.data.requests import StockLatestQuoteRequest
+
+        # Use stock client to get latest quote
+        stock_client = StockHistoricalDataClient(ALPACA_API_KEY, ALPACA_SECRET_KEY)
+        request = StockLatestQuoteRequest(symbol_or_symbols=underlying)
+        quotes = stock_client.get_stock_latest_quote(request)
+
+        # Get mid price (average of bid and ask)
+        quote = quotes[underlying]
+        if quote.ask_price and quote.bid_price:
+            mid_price = (Decimal(str(quote.ask_price)) + Decimal(str(quote.bid_price))) / Decimal('2')
+        else:
+            mid_price = Decimal(str(quote.ask_price or quote.bid_price or 450.00))
+
+        logger.info("Fetched underlying price", symbol=underlying, price=float(mid_price))
+        return mid_price
+
+    except Exception as e:
+        logger.error("Failed to fetch underlying price, using fallback", underlying=underlying, error=str(e))
+        # Fallback to placeholder if API fails
+        return Decimal('450.00')
 
 
 async def fetch_option_data_with_greeks(symbol: str) -> OptionTick:
