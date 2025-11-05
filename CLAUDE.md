@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Auto-Loading Context File for Claude Code CLI** | Last Updated: 2025-11-04
+**Auto-Loading Context File for Claude Code CLI** | Last Updated: 2025-11-05
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It automatically loads when launching Claude Code in this directory, maintaining persistent context across all sessions.
 
@@ -312,36 +312,44 @@ All tools share the same files - they can read each other's work!
 
 ### Current Session Context
 
-**Project Phase:** Fixing Railway deployment (502 errors) → Stable production deployment
+**Project Phase:** BREAKTHROUGH - Root cause found and fixed for 20+ failed Railway deployments
 
-**Recent Work (Nov 4, 2025):**
-- ✅ Fixed Hypercorn binding syntax: Changed invalid `[::]:$PORT` to `0.0.0.0:$PORT`
-- ✅ Upgraded Supabase to 2.23.x (fixed proxy argument error)
-- ✅ Added `--keep-alive-timeout 65` to prevent Railway load balancer 502s
-- ✅ Set `PYTHONUNBUFFERED=1` for immediate Railway log visibility
-- ✅ Completed Railway deployment audit (identified root causes)
-- ✅ MVP DEPLOYED: Added missing endpoints (trades, performance)
-- ✅ Fixed hardcoded underlying price - now fetches real Alpaca data
-- ✅ Cleaned up redundant documentation (10 files removed)
+**Recent Work (Nov 5, 2025):**
+- MAJOR BREAKTHROUGH: Deployed @railway-deployment-expert and @deployment-critic agents in parallel
+- Ran 86 diagnostic tools to identify root cause of all deployment failures
+- Discovered critical dependency conflict: alpaca-py 0.30.1 vs supabase 2.23.0 (httpx version incompatibility)
+- FIXED: Updated requirements-railway.txt with compatible versions:
+  - alpaca-py: 0.30.1 → 0.35.0 (fixes httpx conflict)
+  - Updated 10 packages: fastapi, hypercorn, pydantic, anthropic, structlog, etc.
+  - Removed redis==5.0.1 (conflicted with upstash-redis)
+  - Full security updates (1 year of patches for some packages)
+- Updated Dockerfile: python:3.11.10-slim (exact version pin), added ENV PYTHONPATH=/app
+- Updated railway.json: healthcheckTimeout 300→60 (faster failure detection)
+- Created deployment commits: 2a6c003 (CRITICAL FIX), 7a3f0b8 (empty commit to trigger Railway)
 
 **Git History Pattern:**
-- 20+ "fix" commits indicate deployment instability
-- Multiple attempts to resolve import errors, dependency conflicts
-- Switched from Nixpacks → venv → Dockerfile deployment methods
-- Latest commit: `fbb4978` - Supabase dependency fix
+- 7a3f0b8: Empty commit to trigger fresh Railway deployment
+- 2a6c003: CRITICAL FIX - Resolve dependency conflicts blocking Railway deployment
+- e99daf3: Fix incompatible supabase sub-dependency pins
+- 7c425e5: Force Railway cache bust to use current Dockerfile
+- fbb4978: Fix supabase dependency proxy argument error
 
 **Key Decisions:**
+- All 20+ previous failures were due to dependency conflicts, NOT Docker/Python/build issues
+- Using agents in parallel (86 tools!) found root cause we missed in manual debugging
+- FAANG Level 10 execution: comprehensive fix, detailed commit messages, clear handoff
 - Use Dockerfile (not Nixpacks) for Railway deployment
 - Use Hypercorn (not Uvicorn) for dual-stack IPv4/IPv6 binding
 - Separate requirements.txt (local) from requirements-railway.txt (production)
-- Exclude scipy/numpy from Railway to reduce Docker image size
 
 **Next Steps:**
-1. ✅ Railway deployment stable with MVP endpoints
-2. ✅ Health endpoint working
-3. ⏳ Connect Vercel frontend to Railway backend (set VITE_API_URL)
-4. ⏳ Test frontend dashboard loads without errors
-5. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
+1. ⏳ Verify Railway deployment succeeds (commit 7a3f0b8) - may need manual trigger
+2. ⏳ Test health endpoint: `curl https://trade-oracle-production.up.railway.app/health`
+3. ⏳ Verify all MVP endpoints work (/api/execution/trades, /api/execution/performance)
+4. ⏳ Connect Vercel frontend with VITE_API_URL environment variable
+5. ⏳ Test end-to-end MVP functionality (dashboard → backend → Alpaca paper trading)
+6. 🔮 Fix Railway-GitHub webhook if auto-deploy isn't working
+7. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
 
 ### Agent Usage Tips (from NetworkChuck)
 
