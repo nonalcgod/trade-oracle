@@ -12,8 +12,8 @@ RUN apk add --no-cache gcc musl-dev libffi-dev
 # Install Python dependencies
 RUN pip install --no-cache-dir -r backend/requirements-railway.txt
 
-# Expose port (Railway will inject $PORT)
-EXPOSE 8000
+# Change to backend directory
+WORKDIR /app/backend
 
-# Use Hypercorn as recommended by Railway
-CMD cd backend && hypercorn main:app --bind [::]:$PORT
+# Use Hypercorn as recommended by Railway (dual-stack binding)
+CMD hypercorn main:app --bind [::]:${PORT:-8000}
