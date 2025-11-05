@@ -12,7 +12,12 @@ python-multipart==0.0.6
 alpaca-py>=0.30.0
 
 # Database
-supabase>=2.9.0
+# Exact versions to force Railway to use modern supabase (no proxy bug)
+postgrest==0.18.0
+gotrue==2.12.1
+realtime==2.2.2
+storage3==0.10.0
+supabase==2.11.0
 
 # Cache
 redis==5.0.1
