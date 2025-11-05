@@ -1,4 +1,5 @@
 FROM python:3.9-slim
+ENV PYTHONUNBUFFERED=1
 
 # Set working directory to backend (where main.py lives)
 WORKDIR /app
@@ -10,5 +11,4 @@ COPY backend/ ./
 RUN pip install --no-cache-dir -r requirements-railway.txt
 
 # Run hypercorn on all interfaces using Railway's PORT env var
-# Using :: for IPv6/IPv4 dual stack binding (Railway recommendation)
-CMD ["sh", "-c", "hypercorn main:app --bind [::]:${PORT:-8000}"]
+CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000} --keep-alive-timeout 65"]
