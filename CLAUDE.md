@@ -8,9 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Trade Oracle is a production-ready options trading system implementing IV (Implied Volatility) Mean Reversion strategy. Built entirely on free-tier services for paper trading.
+Trade Oracle is a production-ready multi-strategy options trading system implementing two algorithmic strategies. Built entirely on free-tier services for paper trading.
 
-**Core Strategy**: Sell options when IV > 70th percentile, buy when IV < 30th percentile. Target 30-45 DTE with hardcoded risk management parameters proven by research (75% win rate in backtests).
+**Strategies Implemented**:
+1. **IV Mean Reversion**: Sell options when IV > 70th percentile, buy when IV < 30th percentile. Target 30-45 DTE with hardcoded risk management (75% win rate in backtests).
+2. **0DTE Iron Condor**: Same-day expiration 4-leg spreads targeting 0.15 delta strikes. Entry window 9:31-9:45am ET, automated exit at 50% profit, 2x stop loss, or 3:50pm ET force close (70-80% theoretical win rate).
 
 ## Architecture
 
@@ -19,8 +21,9 @@ The system follows a microservices pattern with four core services:
 ### Backend (FastAPI on Railway)
 - **Data Service** (`backend/api/data.py`): Alpaca integration for real-time option quotes + Black-Scholes Greeks calculator
 - **Strategy Service** (`backend/api/strategies.py`): IV Mean Reversion signal generation using 90-day IV rank
+- **Iron Condor Service** (`backend/api/iron_condor.py`): 0DTE iron condor strategy with delta-based strike selection and multi-leg order building
 - **Risk Service** (`backend/api/risk.py`): Circuit breakers (3% daily loss, 3 consecutive losses, 2% max risk per trade)
-- **Execution Service** (`backend/api/execution.py`): Order placement via Alpaca with slippage tracking and P&L logging
+- **Execution Service** (`backend/api/execution.py`): Single-leg and multi-leg order placement via Alpaca with position tracking and P&L logging
 
 ### Frontend (React + Vite on Vercel)
 - Dashboard showing portfolio metrics, P&L charts, trade history, and system status
@@ -29,6 +32,7 @@ The system follows a microservices pattern with four core services:
 ### Database (Supabase PostgreSQL)
 - `option_ticks`: Real-time market data with calculated Greeks
 - `trades`: Complete execution history with P&L, commission, slippage
+- `positions`: Open/closed position tracking with multi-leg support (JSONB `legs` column for iron condors)
 - `reflections`: Weekly Claude AI analysis of performance
 - `portfolio_snapshots`: Daily equity curve tracking
 
@@ -191,10 +195,24 @@ All models use Pydantic v2 with `Decimal` for financial precision:
 
 ### Route Structure
 All API routes follow RESTful pattern:
+
+**IV Mean Reversion Strategy**:
 - `GET /api/data/latest/{symbol}`: Latest option data with Greeks
 - `POST /api/strategies/signal`: Generate trading signal from tick
 - `POST /api/risk/approve`: Validate trade against risk limits
-- `POST /api/execution/order`: Execute trade via Alpaca
+- `POST /api/execution/order`: Execute single-leg trade via Alpaca
+
+**0DTE Iron Condor Strategy**:
+- `GET /api/iron-condor/health`: Strategy initialization status
+- `GET /api/iron-condor/should-enter`: Check if within entry window (9:31-9:45am ET)
+- `POST /api/iron-condor/signal`: Generate iron condor signal for underlying
+- `POST /api/iron-condor/build`: Build 4-leg iron condor with delta-based strike selection
+- `POST /api/iron-condor/check-exit`: Evaluate exit conditions (50% profit, 2x stop, 3:50pm, breach)
+
+**Execution & Monitoring**:
+- `POST /api/execution/order/multi-leg`: Execute 4-leg iron condor order
+- `GET /api/execution/positions`: List open/closed positions (supports multi-leg)
+- `GET /api/execution/positions/{id}`: Get position details with legs data
 - `GET /api/execution/portfolio`: Current portfolio state
 - `GET /api/execution/trades`: Trade history with P&L
 
@@ -554,14 +572,69 @@ vercel --prod
 - Redis caching structure (optional, requires UPSTASH_REDIS_URL)
 - Frontend positions display with real-time progress bars
 
+---
+
+**Recent Work (Nov 5, 2025 - 0DTE Iron Condor Implementation):**
+- **FEATURE: 0DTE Iron Condor Strategy - Multi-Leg Options Trading** (commit 74f469b)
+  - Implemented complete iron condor strategy in `backend/strategies/iron_condor.py`
+  - Created 5 API endpoints in `backend/api/iron_condor.py` (signal, build, check-exit, should-enter, health)
+  - Built delta-based strike selection (target 0.15 delta for 70% theoretical win rate)
+  - Entry window: 9:31-9:45am ET (first 15 minutes only)
+  - Exit conditions: 50% profit target, 2x credit stop loss, 3:50pm force close, 2% breach detection
+
+- **DATABASE: Multi-Leg Position Support** (migration 002)
+  - Created `backend/migrations/002_multi_leg_positions.sql`
+  - Added JSONB `legs` column to positions table (stores 4-leg iron condor data)
+  - Added `net_credit`, `max_loss`, `spread_width` columns
+  - Backward compatible with NULL defaults (existing single-leg positions unaffected)
+  - **STATUS**: ⚠️ Migration ready but NOT YET APPLIED (user must apply in Supabase SQL Editor)
+
+- **EXECUTION: Multi-Leg Position Tracking**
+  - Implemented `log_multi_leg_trade_to_supabase()` in `backend/api/execution.py` (lines 283-330)
+  - Implemented `create_multi_leg_position()` in `backend/api/execution.py` (lines 139-210)
+  - Modified `place_multi_leg_order()` to create position records after execution
+  - Full position lifecycle: Open 4-leg order → Log to trades → Create position → Monitor → Exit
+
+- **MONITORING: Iron Condor Exit Logic**
+  - Enhanced `backend/monitoring/position_monitor.py` with strategy-specific exit logic (lines 23-148)
+  - Implemented 4-leg P&L calculation (sell legs negative, buy legs positive)
+  - Exit condition detection: 50% profit, 2x stop, 3:50pm ET, 2% breach buffer
+  - Automatic position closing when exit conditions met
+
+**Iron Condor Documentation:**
+- `0DTE_IRON_CONDOR_EXPERT_GUIDE.md` - 40,000-word research document (10+ sources)
+- `IRON_CONDOR_IMPLEMENTATION_PLAN.md` - Complete implementation guide (1,200 lines)
+- `IRON_CONDOR_DEPLOYMENT_READY.md` - Deployment checklist (600 lines)
+- `IMPLEMENTATION_SUMMARY.md` - Implementation summary (400 lines)
+- `APPLY_DATABASE_MIGRATION.md` - User action guide for migration
+- `COMPREHENSIVE_AUDIT_REPORT.md` - Pre-deployment audit findings (all services)
+
+**Deployment Status:**
+- ✅ Backend code deployed to Railway (commit 74f469b)
+- ✅ GitHub repository synchronized
+- ✅ All 5 iron condor endpoints operational
+- ⚠️ Database migration NOT YET APPLIED (blocker for testing)
+- ⚠️ Vercel env vars point to localhost (critical blocker)
+- ⚠️ Frontend has no iron condor UI components (non-blocking)
+
+**Audit Findings (Nov 5, 2025 - Comprehensive Parallel Audit):**
+- **Supabase**: ✅ Ready (95%) - Migration safe and backward compatible
+- **GitHub**: ✅ Ready (98%) - Code committed, minor housekeeping needed
+- **Vercel**: 🔴 Critical (60%) - Environment variables point to localhost
+- **Documentation**: ⚠️ Incomplete (89%) - CLAUDE.md and README.md missing iron condor (FIXED)
+- **Overall Readiness**: 75% (2 critical fixes required before migration)
+
 **Next Steps:**
-1. ✅ COMPLETE: Automated position closing system
-2. ✅ COMPLETE: Frontend positions display
-3. ✅ COMPLETE: Testing API for manual control
-4. ✅ COMPLETE: Performance optimization infrastructure
-5. ⏳ **USER ACTION**: Apply performance_indexes.sql in Supabase SQL Editor
-6. 🚀 **IN PROGRESS**: Phase 2 - Real-time architecture (Supabase Real-Time, Background Tasks)
-7. 🔜 Phase 3 - Horizontal scaling (Railway autoscaling)
+1. ✅ COMPLETE: Iron condor backend implementation
+2. ✅ COMPLETE: Multi-leg position tracking
+3. ✅ COMPLETE: Iron condor exit monitoring
+4. ✅ COMPLETE: Comprehensive system audit
+5. ✅ COMPLETE: Update CLAUDE.md with iron condor content
+6. ⏳ **BLOCKER**: Fix Vercel environment variables (VITE_API_URL → Railway production)
+7. ⏳ **BLOCKER**: Apply database migration in Supabase SQL Editor
+8. 🔜 Test iron condor end-to-end during market hours
+9. 🔜 Phase 2 - Real-time architecture (Supabase Real-Time, Background Tasks)
+10. 🔜 Phase 3 - Horizontal scaling (Railway autoscaling)
 
 ### Agent Usage Tips (from NetworkChuck)
 
