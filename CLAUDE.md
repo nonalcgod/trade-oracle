@@ -424,16 +424,14 @@ All tools share the same files - they can read each other's work!
 - **Backend**: https://trade-oracle-production.up.railway.app
 - **Health Check**: https://trade-oracle-production.up.railway.app/health
 - **API Docs**: https://trade-oracle-production.up.railway.app/docs
-- **Frontend**: Not yet configured (pending Vercel deployment)
+- **Frontend**: https://frontend-nine-mocha-75.vercel.app
 
 **Next Steps:**
 1. ✅ COMPLETE: Railway backend fully operational
-2. 🔜 Configure Vercel frontend with `VITE_API_URL=https://trade-oracle-production.up.railway.app`
+2. ✅ COMPLETE: Vercel frontend deployed and configured
 3. 🔜 Test end-to-end MVP functionality (dashboard → backend → Alpaca paper trading)
-4. 🔜 Implement Phase 4-5 features (WebSocket, enhanced charts, unit tests)
-5. ⏳ Test end-to-end MVP functionality (dashboard → backend → Alpaca paper trading)
-6. 🔮 Fix Railway-GitHub webhook if auto-deploy isn't working
-7. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
+4. 🔜 Fix Railway-GitHub webhook if auto-deploy isn't working
+5. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
 
 ### Agent Usage Tips (from NetworkChuck)
 
