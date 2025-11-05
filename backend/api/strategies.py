@@ -14,7 +14,7 @@ import os
 import structlog
 from supabase import create_client, Client
 
-from ..models.trading import OptionTick, Signal, SignalType
+from models.trading import OptionTick, Signal, SignalType
 
 logger = structlog.get_logger()
 

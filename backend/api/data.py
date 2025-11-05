@@ -18,8 +18,8 @@ from alpaca.data.requests import OptionLatestQuoteRequest
 from supabase import create_client, Client
 import structlog
 
-from ..models.trading import OptionTick
-from ..utils.greeks import calculate_all_greeks
+from models.trading import OptionTick
+from utils.greeks import calculate_all_greeks
 
 logger = structlog.get_logger()
 

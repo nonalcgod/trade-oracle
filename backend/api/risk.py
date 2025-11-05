@@ -14,7 +14,7 @@ import structlog
 from supabase import create_client, Client
 from datetime import datetime, timedelta
 
-from ..models.trading import Signal, RiskApproval, Portfolio, StrategyStats
+from models.trading import Signal, RiskApproval, Portfolio, StrategyStats
 
 logger = structlog.get_logger()
 
