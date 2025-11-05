@@ -10,13 +10,13 @@ COPY backend/ ./
 
 # Install Python dependencies
 # FIX: Remove explicit httpx pin - let supabase pull its own compatible version
-# This resolves proxy parameter bug by allowing supabase to control httpx version
+# Switch to Uvicorn (more reliable than Hypercorn for Railway)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi==0.115.5 hypercorn==0.17.3 pydantic==2.9.2 \
+    pip install --no-cache-dir fastapi==0.115.5 uvicorn[standard]==0.32.1 pydantic==2.9.2 \
         pydantic-settings==2.6.1 python-multipart==0.0.18 alpaca-py==0.35.0 \
         upstash-redis==1.0.0 anthropic==0.39.0 python-dotenv==1.0.0 \
         python-dateutil==2.8.2 pytz==2023.3 websockets==12.0 \
         structlog==24.4.0 supabase==2.15.1
 
-# Run hypercorn on all interfaces using Railway's PORT env var
-CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000} --keep-alive-timeout 65"]
+# Run uvicorn on all interfaces using Railway's PORT env var
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
