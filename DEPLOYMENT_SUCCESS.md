@@ -103,9 +103,11 @@ Test all endpoints through the live dashboard:
 ## 🔑 API Keys Summary
 
 All configured in Railway environment:
-- ✅ Alpaca: PKU5JVA7E2RCLYFBEJEONLIQVU
+- ✅ Alpaca: [Configured in Railway env vars - NEVER commit actual keys]
 - ✅ Supabase: https://zwuqmnzqjkybnbicwbhz.supabase.co
 - ✅ Database tables: Created and ready
+
+**SECURITY NOTE:** API keys must NEVER be committed to git. All keys stored securely in Railway environment variables.
 
 ## 💰 Cost Tracking
 
