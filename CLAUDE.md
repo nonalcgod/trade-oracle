@@ -37,6 +37,60 @@ The system follows a microservices pattern with four core services:
 - **Upstash Redis**: Optional caching layer (not critical)
 - **Anthropic API**: Weekly performance reflection (skeleton implemented)
 
+## UI Design System
+
+Trade Oracle uses a custom mobile-first design system inspired by Ben AI's warm, sophisticated aesthetic. Complete specifications available in `UI_DESIGN_PROMPT.md`.
+
+### Design Philosophy
+- **Ben AI Aesthetic**: Warm cream backgrounds (#F5F1E8), rounded components, 3D isometric illustrations
+- **Financial Clarity**: Monospace fonts for numbers, color-coded P&L, clear hierarchy
+- **Mobile-First**: iPhone 14 Pro optimized (393×852px), touch-friendly spacing
+- **Premium Feel**: Black cards with teal/rose accents, sparkle icons (✨), pill badges
+
+### Color Semantics
+- **Cream (#F5F1E8)**: Primary background - reduces eye strain for extended trading
+- **Black (#1A1A1A)**: Premium cards with colored accent borders
+- **White (#FFFFFF)**: Data cards and tables
+- **Emerald/Green (#10B981)**: Profits, buy signals, positive metrics
+- **Rose/Red (#EF4444)**: Losses, sell signals, critical warnings
+- **Teal/Cyan (#14B8A6)**: Neutral metrics, system status, connected states
+- **Amber (#F59E0B)**: Warnings, circuit breakers approaching limits
+
+### Component Library
+Located in `frontend/src/components/`:
+- **PillBadge**: Rounded-full badges for status indicators (PAPER TRADING, IV percentiles)
+- **StatusDot**: Pulse-animated status indicators (green/red/amber)
+- **CircuitBreakerProgress**: Progress bars with color coding for risk limits
+- **MetricCard**: Reusable cards for displaying trading metrics
+
+### Typography Hierarchy
+1. **Hero Metrics** (Portfolio Balance): 48-56px, font-mono, black, bold
+2. **Section Headlines**: 32-36px, font-sans, black, semi-bold
+3. **Card Titles**: 20-24px, font-sans, black, medium
+4. **Data Labels**: 14px, font-sans, gray-600, uppercase, tracking-wide
+5. **Numbers**: 16-20px, font-mono, colored (green/red/black)
+6. **Pill Badges**: 12-14px, font-sans, medium, rounded-full
+
+### Mobile Screens
+Three primary views designed for iPhone 14 Pro:
+1. **Dashboard Overview**: Portfolio balance, daily P&L, status indicators, risk metrics
+2. **Trade History**: List of executed trades with IV percentiles and P&L breakdown
+3. **System Status**: Service health checks and circuit breaker visualizations
+
+### Key Design Patterns
+- **3D Isometric Layers**: Stacked screen illustration showing Portfolio → Trades → Greeks → Risk
+- **Sparkle Icons** (✨): Used for AI features and premium elements
+- **Rounded Components**: border-radius 16-24px on all cards and buttons
+- **No Scrollbars**: All content fits above fold in mobile viewport
+- **Status Pulse Animations**: Subtle pulse on "Connected" status dots
+
+### Usage
+See `UI_DESIGN_PROMPT.md` for complete specifications to use with:
+- Cursor AI (Composer)
+- v0.dev (copy/paste prompt)
+- Claude Code (direct implementation)
+- Any AI coding assistant
+
 ## Key Commands
 
 ### Development
