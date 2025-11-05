@@ -48,13 +48,14 @@ app.add_middleware(
 )
 
 # Import routers
-from api import data, strategies, risk, execution
+from api import data, strategies, risk, execution, testing
 
 # Register routers
 app.include_router(data.router)
 app.include_router(strategies.router)
 app.include_router(risk.router)
 app.include_router(execution.router)
+app.include_router(testing.router)
 
 
 @app.get("/")
