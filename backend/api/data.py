@@ -30,6 +30,21 @@ ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
 ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets")
 
+# CRITICAL: Validate paper trading only
+if ALPACA_BASE_URL and "paper-api" not in ALPACA_BASE_URL:
+    raise ValueError(
+        f"CRITICAL SAFETY CHECK FAILED: ALPACA_BASE_URL must use paper-api.alpaca.markets\n"
+        f"Current value: {ALPACA_BASE_URL}\n"
+        f"This system is designed for PAPER TRADING ONLY. Never use real money."
+    )
+
+if ALPACA_API_KEY and not ALPACA_API_KEY.startswith("PK"):
+    raise ValueError(
+        f"CRITICAL SAFETY CHECK FAILED: ALPACA_API_KEY must be a paper trading key (starts with 'PK')\n"
+        f"Current key starts with: {ALPACA_API_KEY[:2]}\n"
+        f"Paper trading keys start with 'PK', live keys start with 'AK'."
+    )
+
 # Initialize Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")

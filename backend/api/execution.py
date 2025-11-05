@@ -27,6 +27,15 @@ router = APIRouter(prefix="/api/execution", tags=["execution"])
 ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
 ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
 
+# CRITICAL: Validate paper trading API keys
+if ALPACA_API_KEY and not ALPACA_API_KEY.startswith("PK"):
+    raise ValueError(
+        f"CRITICAL SAFETY CHECK FAILED: ALPACA_API_KEY must be a paper trading key (starts with 'PK')\n"
+        f"Current key starts with: {ALPACA_API_KEY[:2]}\n"
+        f"Paper trading keys start with 'PK', live keys start with 'AK'.\n"
+        f"This system is designed for PAPER TRADING ONLY. Never use real money."
+    )
+
 # Initialize Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
