@@ -5,15 +5,21 @@ import Trades from './components/Trades'
 import Charts from './components/Charts'
 import Positions from './components/Positions'
 import { apiService, handleApiError, PortfolioData, Trade, HealthStatus, Position } from './api'
+import { useRealtimePositions } from './hooks/useRealtimePositions'
+import { useRealtimeTrades } from './hooks/useRealtimeTrades'
 
 function App() {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [positions, setPositions] = useState<Position[]>([])
+  const [initialTrades, setInitialTrades] = useState<Trade[]>([])
+  const [initialPositions, setInitialPositions] = useState<Position[]>([])
   const [health, setHealth] = useState<HealthStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+
+  // Real-time hooks (will fallback to polling if Supabase not configured)
+  const { positions, isConnected: positionsConnected, isRealtimeEnabled: positionsRealtimeEnabled } = useRealtimePositions(initialPositions)
+  const { trades, latestTrade, isConnected: tradesConnected, isRealtimeEnabled: tradesRealtimeEnabled } = useRealtimeTrades(initialTrades)
 
   // Fetch data from API
   const fetchData = async () => {
@@ -27,8 +33,8 @@ function App() {
       ])
 
       setPortfolio(portfolioData)
-      setTrades(tradesData)
-      setPositions(positionsData)
+      setInitialTrades(tradesData)
+      setInitialPositions(positionsData)
       setHealth(healthData)
       setLastUpdate(new Date())
     } catch (err) {
@@ -57,6 +63,19 @@ function App() {
     return 'warning'
   }
 
+  const getRealtimeStatus = () => {
+    if (!positionsRealtimeEnabled && !tradesRealtimeEnabled) {
+      return { status: 'polling', message: 'Polling (5s)' }
+    }
+    if (positionsConnected && tradesConnected) {
+      return { status: 'connected', message: 'Real-time' }
+    }
+    if (positionsConnected || tradesConnected) {
+      return { status: 'partial', message: 'Partial real-time' }
+    }
+    return { status: 'connecting', message: 'Connecting...' }
+  }
+
   if (loading && !portfolio) {
     return (
       <div className="container">
@@ -80,6 +99,10 @@ function App() {
           <div className="status-indicator">
             <span className={`status-dot ${getBackendStatus()}`}></span>
             <span>Backend: {getBackendStatus() === 'connected' ? 'Connected' : 'Disconnected'}</span>
+          </div>
+          <div className="status-indicator">
+            <span className={`status-dot ${getRealtimeStatus().status === 'connected' ? 'connected' : 'warning'}`}></span>
+            <span>{getRealtimeStatus().message}</span>
           </div>
           {lastUpdate && (
             <div className="last-update">
