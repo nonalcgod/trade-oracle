@@ -228,6 +228,33 @@ Add additional origins as needed for staging environments.
 - Supabase: Free tier (500MB DB, 2GB bandwidth/month)
 - Alpaca: Free paper trading
 
+## Scaling and Performance
+
+For comprehensive scaling strategy, see **SCALING_PLAN.md** in the project root.
+
+**Quick Reference** (based on Context7 MCP research of all platforms):
+
+### Immediate Optimizations
+1. **Database Connection Pooling**: Configure Supabase with min/max pool sizes (30-50% latency reduction)
+2. **Redis Caching**: Cache risk limits (1hr TTL), portfolio state (10s TTL), historical data (5min TTL)
+3. **Async Alpaca Client**: Use asyncio for concurrent API calls (5-10x faster multi-symbol quotes)
+4. **Database Indexing**: Add indexes on `(symbol, timestamp)` for 90-day IV rank queries
+
+### Real-Time Architecture
+5. **WebSocket Streaming**: Replace REST polling with Alpaca OptionDataStream (unlimited updates)
+6. **Supabase Real-Time**: Push portfolio updates to frontend via PostgreSQL triggers
+7. **Background Tasks**: Use FastAPI BackgroundTasks for non-blocking order execution
+8. **Edge Functions**: Deploy critical endpoints to Vercel Edge for global CDN distribution
+
+### Production Scaling
+9. **Railway Autoscaling**: Configure 2-10 replicas based on CPU/memory (railway.json)
+10. **Performance Monitoring**: Add Prometheus metrics for latency, error rates, throughput
+11. **Alerting**: Discord/Slack webhooks for circuit breakers, API failures, performance degradation
+
+**Cost at Scale**:
+- 10K requests/day, 500 trades/month: ~$60/month (Railway $25, Supabase Pro $25, Upstash $10)
+- Current MVP: ~$10/month (Railway only, others stay free tier)
+
 ## Common Issues
 
 ### "Backend: Disconnected" on frontend
