@@ -21,6 +21,7 @@ export interface PortfolioData {
   delta: number;
   theta: number;
   active_positions: number;
+  total_trades: number;
 }
 
 export interface Trade {
@@ -73,7 +74,18 @@ export const apiService = {
   // Portfolio
   async getPortfolio(): Promise<PortfolioData> {
     const response = await api.get('/api/execution/portfolio');
-    return response.data;
+    const portfolio = response.data.portfolio;
+    // Backend returns strings for Decimal fields - convert to numbers
+    return {
+      balance: parseFloat(portfolio.balance),
+      daily_pnl: parseFloat(portfolio.daily_pnl),
+      win_rate: portfolio.win_rate,
+      consecutive_losses: portfolio.consecutive_losses,
+      delta: parseFloat(portfolio.delta),
+      theta: parseFloat(portfolio.theta),
+      active_positions: portfolio.active_positions,
+      total_trades: portfolio.total_trades,
+    };
   },
 
   // Trades
