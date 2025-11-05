@@ -10,8 +10,9 @@ alpaca-py==0.15.0
 alpaca-trade-api==3.1.1
 
 # Database
-supabase==2.3.0
-postgrest==0.13.0
+# NOTE: For Railway deployment, see requirements-railway.txt
+supabase==2.3.0  # Local dev only - Railway uses newer version
+postgrest==0.13.0  # Local dev only
 
 # Cache
 redis==5.0.1
