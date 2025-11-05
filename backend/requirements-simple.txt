@@ -1,0 +1,27 @@
+# Minimal requirements - let pip auto-resolve versions
+# Use this if requirements-railway.txt has conflicts
+
+# Core
+fastapi
+hypercorn
+pydantic
+pydantic-settings
+python-multipart
+
+# Trading
+alpaca-py
+
+# Database & Cache
+supabase
+postgrest
+redis
+upstash-redis
+
+# AI (optional)
+anthropic
+
+# Utilities
+python-dotenv
+python-dateutil
+pytz
+structlog
