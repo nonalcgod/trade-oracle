@@ -1,7 +1,7 @@
 """
-Data Service - Alpaca WebSocket integration with Greeks calculation
+Data Service - Alpaca option data with Greeks calculation
 
-Streams real-time option data from Alpaca and calculates Greeks.
+Fetches latest option quotes from Alpaca and calculates Greeks.
 Logs all ticks to Supabase for historical analysis.
 """
 
@@ -12,7 +12,6 @@ from datetime import datetime
 import os
 from typing import Optional
 import asyncio
-from alpaca.data.live import StockDataStream
 from alpaca.data.historical.option import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 from supabase import create_client, Client
