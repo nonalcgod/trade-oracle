@@ -465,12 +465,36 @@ vercel --prod
 - **API Docs**: https://trade-oracle-production.up.railway.app/docs
 - **Frontend**: https://trade-oracle-lac.vercel.app
 
+**End-to-End Testing Complete (Nov 5, 2025 - Evening Session):**
+- ✅ **Historical IV Data Seeded**: 270 data points across 3 option strikes (QQQ $520C, SPY $600C, QQQ $640C)
+- ✅ **Signal Generation Validated**: IV Mean Reversion working with 90-day IV rank calculation
+- ✅ **Risk Management Tested**: Circuit breakers correctly rejected oversized positions, approved after adjustment
+- ✅ **Paper Trade Executed**: BUY 8 contracts QQQ $640C @ $11.96 (Alpaca Order ID: ce151fcd-75d1-4358-b5e3-f9c02a593dc6)
+- ✅ **Database Logging Verified**: Trade #1 logged to Supabase with all execution details
+- ✅ **Dashboard Displaying Trade**: User confirmed viewing trade on https://trade-oracle-lac.vercel.app
+- ✅ **Scaling Research Complete**: SCALING_PLAN.md created with Alpaca, Supabase, Railway, Vercel insights
+
+**Risk Tolerance Adjustment (Temporary for Testing):**
+- `MAX_PORTFOLIO_RISK`: 2% → 5% (allows testing with affordable option strikes)
+- `MAX_POSITION_SIZE`: 5% → 10% (enables 8-contract position on $100K portfolio)
+- Deployed to Railway via commit 3e8711a
+
+**First Live Trade Details:**
+- **Symbol**: QQQ251219C00640000 (QQQ Dec 19 $640 Call)
+- **Strategy**: IV Mean Reversion (buying underpriced volatility)
+- **Signal**: BUY (IV rank 0th percentile, 100% confidence)
+- **Position**: 8 contracts @ $11.96 entry
+- **Max Loss**: $4,784 (50% stop loss at $5.98)
+- **Take Profit**: $23.92 (100% gain)
+- **Commission**: $5.20 ($0.65/contract)
+- **Total Position Value**: $9,568
+
 **Next Steps:**
 1. ✅ COMPLETE: Railway backend fully operational
 2. ✅ COMPLETE: Vercel frontend deployed and configured
-3. 🔜 Test end-to-end MVP functionality (dashboard → backend → Alpaca paper trading)
-4. 🔜 Fix Railway-GitHub webhook if auto-deploy isn't working
-5. 🔮 Future: Phase 4-5 features (WebSocket, enhanced charts, unit tests)
+3. ✅ COMPLETE: End-to-end MVP testing with live paper trade
+4. 🔜 Monitor trade execution and P&L updates on dashboard
+5. 🔮 Implement Phase 4-5 features from SCALING_PLAN.md (WebSocket, real-time updates, enhanced charts)
 
 ### Agent Usage Tips (from NetworkChuck)
 
