@@ -7,9 +7,8 @@ WORKDIR /app
 # Copy backend files to /app
 COPY backend/ ./
 
-# Install Python dependencies and validate installation
-RUN pip install --no-cache-dir -r requirements-railway.txt && \
-    python -c "import fastapi; import hypercorn; from alpaca.data import StockDataStream; from supabase import create_client; print('✓ Dependencies installed successfully')"
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-railway.txt
 
 # Run hypercorn on all interfaces using Railway's PORT env var
 CMD ["sh", "-c", "hypercorn main:app --bind 0.0.0.0:${PORT:-8000} --keep-alive-timeout 65"]
