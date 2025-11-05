@@ -50,7 +50,7 @@ You now have a **production-ready options trading bot** with:
 ## File Structure
 
 ```
-nuclear-trading-bot/
+trade-oracle/
 ├── backend/
 │   ├── api/
 │   │   ├── data.py           ✅ Alpaca + Greeks

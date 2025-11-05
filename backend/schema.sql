@@ -1,4 +1,4 @@
--- Nuclear Options Trading Bot - Supabase Schema
+-- Trade Oracle - Supabase Schema
 -- Execute this in Supabase SQL Editor or via psql
 
 -- Enable UUID extension (if not already enabled)

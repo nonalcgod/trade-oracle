@@ -1,4 +1,4 @@
-# Nuclear Options Trading Bot
+# Trade Oracle
 
 A production-ready options trading system built on 100% free tiers (Nuclear Option strategy).
 
@@ -30,7 +30,7 @@ A production-ready options trading system built on 100% free tiers (Nuclear Opti
 ## Project Structure
 
 ```
-nuclear-trading-bot/
+trade-oracle/
 ├── backend/              # FastAPI trading engine
 │   ├── api/             # REST endpoints
 │   │   ├── data.py      # Alpaca WebSocket + Greeks

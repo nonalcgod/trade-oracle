@@ -57,7 +57,7 @@ function App() {
     return (
       <div className="container">
         <header>
-          <h1>Nuclear Trading Bot</h1>
+          <h1>Trade Oracle</h1>
           <p className="subtitle">IV Mean Reversion Options Strategy</p>
         </header>
         <div className="loading-spinner">Loading dashboard...</div>
@@ -69,7 +69,7 @@ function App() {
     <div className="container">
       <header>
         <div className="header-content">
-          <h1>Nuclear Trading Bot</h1>
+          <h1>Trade Oracle</h1>
           <p className="subtitle">IV Mean Reversion Options Strategy • Paper Trading Only</p>
         </div>
         <div className="header-status">

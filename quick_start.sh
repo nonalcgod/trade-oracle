@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Nuclear Trading Bot - Quick Start Script
+# Trade Oracle - Quick Start Script
 # This script helps you get started quickly
 
 set -e
 
 echo "=================================================="
-echo "Nuclear Options Trading Bot - Quick Start"
+echo "Trade Oracle - Quick Start"
 echo "=================================================="
 echo ""
 

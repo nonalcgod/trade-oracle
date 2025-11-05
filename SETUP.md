@@ -1,4 +1,4 @@
-# Nuclear Trading Bot - Setup Guide
+# Trade Oracle - Setup Guide
 
 ## Quick Start (Phases 1-3 Complete!)
 

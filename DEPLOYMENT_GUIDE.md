@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide walks through deploying the Nuclear Trading Bot to production using free tier services:
+This guide walks through deploying Trade Oracle to production using free tier services:
 - **Backend**: FastAPI on Railway.app
 - **Frontend**: React on Vercel
 - **Database**: Supabase PostgreSQL
@@ -47,7 +47,7 @@ Before deploying, ensure you have:
 
 4. ✅ GitHub repository set up:
    ```bash
-   cd /Users/joshuajames/Projects/nuclear-trading-bot
+   cd /Users/joshuajames/Projects/trade-oracle
    git remote add origin <your-github-repo-url>
    git push -u origin main
    ```
@@ -62,7 +62,7 @@ Before deploying, ensure you have:
 2. Sign up with GitHub
 3. Click "Create new project"
 4. Select "Deploy from GitHub repo"
-5. Search and select your nuclear-trading-bot repository
+5. Search and select your trade-oracle repository
 6. Railway will auto-detect the Python project
 
 ### Step 2: Configure Environment Variables
@@ -130,7 +130,7 @@ This runs Claude analysis every Sunday.
 2. Click "Import Project"
 3. Select "Import Git Repository"
 4. Authenticate with GitHub
-5. Select your nuclear-trading-bot repository
+5. Select your trade-oracle repository
 
 ### Step 2: Configure Build Settings
 
@@ -391,7 +391,7 @@ Check these for errors:
 
 ## Congratulations! 🎉
 
-Your Nuclear Trading Bot is now live and ready to trade!
+Your Trade Oracle is now live and ready to trade!
 
 **Remember**: Always start with paper trading, monitor closely, and gradually increase risk as confidence builds.
 

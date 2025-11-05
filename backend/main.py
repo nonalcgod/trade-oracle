@@ -1,5 +1,5 @@
 """
-Nuclear Options Trading Bot - FastAPI Backend
+Trade Oracle - FastAPI Backend
 
 Main application entry point with all route registrations.
 """
@@ -25,7 +25,7 @@ logger = structlog.get_logger()
 
 # Create FastAPI app
 app = FastAPI(
-    title="Nuclear Options Trading Bot",
+    title="Trade Oracle",
     description="IV Mean Reversion options trading system with free-tier services",
     version="1.0.0",
     docs_url="/docs",
@@ -59,7 +59,7 @@ app.include_router(execution.router)
 async def root():
     """Root endpoint with API information"""
     return {
-        "name": "Nuclear Options Trading Bot",
+        "name": "Trade Oracle",
         "version": "1.0.0",
         "status": "running",
         "strategy": "IV Mean Reversion",
@@ -97,7 +97,7 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     """Run on application startup"""
-    logger.info("Nuclear Trading Bot starting up",
+    logger.info("Trade Oracle starting up",
                environment=os.getenv("ENVIRONMENT", "development"),
                paper_trading=True)
     
@@ -120,7 +120,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Run on application shutdown"""
-    logger.info("Nuclear Trading Bot shutting down")
+    logger.info("Trade Oracle shutting down")
 
 
 if __name__ == "__main__":
