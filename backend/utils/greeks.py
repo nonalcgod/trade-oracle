@@ -138,6 +138,71 @@ class GreeksCalculator:
         
         term1 = -S * cls.norm_pdf(d1) * sigma / (2 * sqrt_T)
         term2 = r * K * math.exp(-r * T) * cls.norm_cdf(-d2)
-        
+
         # Convert from annual to daily
         return (term1 + term2) / 365.0
+
+
+def calculate_all_greeks(
+    underlying_price: Decimal,
+    strike: Decimal,
+    expiration: datetime,
+    option_price: Decimal,
+    is_call: bool,
+    risk_free_rate: float = 0.05  # Default 5% risk-free rate
+) -> dict:
+    """
+    Calculate all Greeks for an option.
+
+    Args:
+        underlying_price: Current price of underlying
+        strike: Option strike price
+        expiration: Option expiration datetime
+        option_price: Current option price (for IV estimation)
+        is_call: True for call, False for put
+        risk_free_rate: Annual risk-free rate (default 5%)
+
+    Returns:
+        Dict with delta, gamma, theta, vega, iv
+    """
+    # Convert Decimal to float
+    S = float(underlying_price)
+    K = float(strike)
+    option_px = float(option_price)
+
+    # Calculate time to expiration in years
+    now = datetime.utcnow()
+    time_diff = expiration - now
+    T = max(time_diff.total_seconds() / (365.25 * 24 * 3600), 0.0001)  # Minimum 1 hour
+
+    # Estimate IV from option price (simplified - using ATM IV as proxy)
+    # In production, use Newton-Raphson to solve for IV
+    # For now, use a reasonable default based on option price
+    if option_px > 0 and S > 0:
+        # Rough IV estimation: higher option prices relative to underlying suggest higher IV
+        moneyness = S / K if K > 0 else 1.0
+        iv_estimate = min(max(option_px / (S * math.sqrt(T)) * math.sqrt(2 * math.pi), 0.10), 2.0)
+    else:
+        iv_estimate = 0.30  # Default 30% IV
+
+    # Calculate Greeks using GreeksCalculator
+    calc = GreeksCalculator()
+
+    if is_call:
+        delta = Decimal(str(calc.calculate_call_delta(S, K, T, risk_free_rate, iv_estimate)))
+        theta = Decimal(str(calc.calculate_call_theta(S, K, T, risk_free_rate, iv_estimate)))
+    else:
+        delta = Decimal(str(calc.calculate_put_delta(S, K, T, risk_free_rate, iv_estimate)))
+        theta = Decimal(str(calc.calculate_put_theta(S, K, T, risk_free_rate, iv_estimate)))
+
+    gamma = Decimal(str(calc.calculate_gamma(S, K, T, risk_free_rate, iv_estimate)))
+    vega = Decimal(str(calc.calculate_vega(S, K, T, risk_free_rate, iv_estimate)))
+    iv = Decimal(str(iv_estimate))
+
+    return {
+        'delta': delta,
+        'gamma': gamma,
+        'theta': theta,
+        'vega': vega,
+        'iv': iv
+    }
