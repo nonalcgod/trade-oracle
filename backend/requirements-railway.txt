@@ -13,7 +13,7 @@ alpaca-py>=0.30.1
 
 # Database
 supabase==2.3.0
-postgrest==0.13.0
+postgrest==0.16.8
 
 # Cache
 redis==5.0.1
