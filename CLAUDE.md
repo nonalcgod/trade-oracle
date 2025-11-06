@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Auto-Loading Context File for Claude Code CLI** | Last Updated: 2025-11-05
+**Auto-Loading Context File for Claude Code CLI** | Last Updated: 2025-11-05 | VSCode Extensions Guide Added
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. It automatically loads when launching Claude Code in this directory, maintaining persistent context across all sessions.
 
@@ -408,6 +408,56 @@ git status
 ```
 
 All tools share the same files - they can read each other's work!
+
+### VSCode + Claude Code Terminal Workflow
+
+**Recommended Setup:** Use Claude Code in terminal inside VSCode (not standalone terminal).
+
+**Why VSCode Integration?**
+- **VSCode = Your Eyes**: Shows inline errors (Error Lens), visualizes data (PostgreSQL), tests APIs (REST Client)
+- **Claude Code = Your Hands**: Writes/fixes code, deploys, commits, runs tests
+
+**Getting Started:**
+1. Open VSCode in the `trade-oracle` directory
+2. VSCode will prompt: "Do you want to install recommended extensions?"
+3. Click **Install All** (25 extensions configured in `.vscode/extensions.json`)
+4. Open integrated terminal: `Ctrl+` ` (backtick)
+5. Run `claude` in the terminal
+
+**Key Extensions Installed:**
+- **Error Lens**: See errors inline → Copy to Claude → Instant fix
+- **REST Client**: Test FastAPI endpoints using `test-api.http` (45 pre-built tests)
+- **GitLens**: View code history → Give Claude context before refactoring
+- **PostgreSQL**: Query Supabase directly → Verify Claude's database changes
+- **Docker**: Test Railway Dockerfile locally → Catch issues before deployment
+
+**Workflow Example:**
+```bash
+# Split terminal layout in VSCode:
+# Left: Claude Code session
+# Right: Backend server (python main.py)
+# Bottom: Frontend server (npm run dev)
+
+# You see error in Error Lens:
+Line 45: Type 'str' cannot be assigned to 'Decimal'
+
+# You tell Claude:
+> Fix the type error on line 45 in backend/api/data.py
+
+# Claude reads file, fixes it, you save
+# Error Lens clears - confirmed fix!
+```
+
+**Complete Guide:** See `VSCODE_EXTENSIONS_GUIDE.md` (668 lines) for:
+- Extension explanations with examples
+- Keyboard shortcuts optimized for Claude workflow
+- Advanced workflows (screenshot errors, query database, test Docker builds)
+- Troubleshooting tips
+
+**API Testing:** Use `test-api.http` to test all endpoints:
+- Health checks, IV signals, iron condors, risk limits, portfolio, trades
+- Switch between development (localhost) and production (Railway) environments
+- Click "Send Request" above any `###` section
 
 ### Current Session Context
 
