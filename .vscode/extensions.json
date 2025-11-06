@@ -1,0 +1,73 @@
+{
+  "recommendations": [
+    // ========================================
+    // CORE LANGUAGE SUPPORT
+    // ========================================
+    "ms-python.python",              // Python language support
+    "ms-python.vscode-pylance",      // Fast type checking for Pydantic models
+    "ms-python.black-formatter",     // Black code formatter (PEP 8)
+    "dbaeumer.vscode-eslint",        // ESLint for React/TypeScript
+    "esbenp.prettier-vscode",        // Code formatting (frontend)
+
+    // ========================================
+    // DATABASE (SUPABASE/POSTGRESQL)
+    // ========================================
+    "ms-ossdata.vscode-postgresql",  // Query Supabase directly from VSCode
+    "mtxr.sqltools",                 // Database management UI
+    "mtxr.sqltools-driver-pg",       // PostgreSQL driver for SQL Tools
+
+    // ========================================
+    // API DEVELOPMENT & TESTING
+    // ========================================
+    "humao.rest-client",             // Test FastAPI endpoints (no Postman needed)
+    "rangav.vscode-thunder-client",  // GUI API tester (alternative to REST Client)
+
+    // ========================================
+    // DOCKER & DEPLOYMENT
+    // ========================================
+    "ms-azuretools.vscode-docker",   // Dockerfile/docker-compose support
+    "redhat.vscode-yaml",            // YAML support (railway.json, configs)
+
+    // ========================================
+    // GIT & VERSION CONTROL
+    // ========================================
+    "eamodio.gitlens",               // Git blame, history, and insights
+    "mhutchie.git-graph",            // Visual git branch history
+
+    // ========================================
+    // PRODUCTIVITY (Claude Code Workflow)
+    // ========================================
+    "usernamehw.errorlens",          // Inline errors (helps Claude spot issues faster)
+    "christian-kohler.path-intellisense", // Autocomplete file paths
+    "aaron-bond.better-comments",    // Highlight TODO/FIXME/NOTE comments
+    "oderwat.indent-rainbow",        // Color-code indentation levels
+    "streetsidesoftware.code-spell-checker", // Catch typos before Claude does
+
+    // ========================================
+    // TERMINAL & SHELL
+    // ========================================
+    "ms-vscode.makefile-tools",      // Makefile support (if you add build scripts)
+
+    // ========================================
+    // MARKDOWN & DOCUMENTATION
+    // ========================================
+    "yzhang.markdown-all-in-one",    // Markdown editing (for CLAUDE.md updates)
+    "bierner.markdown-mermaid",      // Mermaid diagrams in markdown
+
+    // ========================================
+    // OPTIONAL BUT USEFUL
+    // ========================================
+    "tamasfe.even-better-toml",      // TOML support (pyproject.toml)
+    "dotenv.dotenv-vscode",          // .env file syntax highlighting
+    "mikestead.dotenv"               // Additional .env support
+  ],
+
+  "unwantedRecommendations": [
+    // Avoid these - they conflict with terminal Claude Code workflow
+    "github.copilot",                // Redundant with Claude Code
+    "github.copilot-chat",           // Use Claude in terminal instead
+    "cursor.cursor-vscode",          // Cursor AI extension (different tool)
+    "continue.continue",             // Another AI coding assistant (conflicts)
+    "tabnine.tabnine-vscode"         // Another AI autocomplete (conflicts)
+  ]
+}

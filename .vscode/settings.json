@@ -1,0 +1,140 @@
+{
+  // ========================================
+  // PYTHON SETTINGS (FastAPI Backend)
+  // ========================================
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.diagnosticMode": "workspace",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "black-formatter.args": ["--line-length", "100"],
+
+  // ========================================
+  // JAVASCRIPT/TYPESCRIPT (React Frontend)
+  // ========================================
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "prettier.singleQuote": false,
+  "prettier.semi": true,
+  "prettier.trailingComma": "es5",
+
+  // ========================================
+  // ERROR LENS (Claude Code Workflow)
+  // ========================================
+  "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+  "errorLens.followCursor": "activeLine",
+  "errorLens.fontSize": "0.9em",
+
+  // ========================================
+  // GITLENS (Git History)
+  // ========================================
+  "gitlens.currentLine.enabled": true,
+  "gitlens.hovers.currentLine.over": "line",
+  "gitlens.blame.compact": true,
+
+  // ========================================
+  // TERMINAL SETTINGS (Claude Code)
+  // ========================================
+  "terminal.integrated.fontSize": 13,
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.defaultProfile.linux": "bash",
+
+  // ========================================
+  // FILE EXPLORER
+  // ========================================
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/node_modules": true,
+    "**/.DS_Store": true,
+    "**/venv": false,  // Show venv folder
+    "**/.venv": false  // Show .venv folder
+  },
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/venv/**": true,
+    "**/__pycache__/**": true
+  },
+
+  // ========================================
+  // EDITOR SETTINGS (Code Quality)
+  // ========================================
+  "editor.rulers": [88, 100],  // PEP 8 + project line length
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 100,
+  "editor.suggestSelection": "first",
+  "editor.tabSize": 4,  // Python default
+  "editor.detectIndentation": true,
+
+  // ========================================
+  // MARKDOWN (Documentation)
+  // ========================================
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "on",
+      "strings": "on",
+      "other": "on"
+    }
+  },
+
+  // ========================================
+  // SQL TOOLS (Supabase Connection)
+  // ========================================
+  "sqltools.useNodeRuntime": true,
+  "sqltools.autoOpenSessionFiles": false,
+
+  // ========================================
+  // REST CLIENT (API Testing)
+  // ========================================
+  "rest-client.environmentVariables": {
+    "$shared": {
+      "localApi": "http://localhost:8000",
+      "productionApi": "https://trade-oracle-production.up.railway.app"
+    },
+    "development": {
+      "apiUrl": "http://localhost:8000"
+    },
+    "production": {
+      "apiUrl": "https://trade-oracle-production.up.railway.app"
+    }
+  },
+
+  // ========================================
+  // DOCKER
+  // ========================================
+  "docker.showStartPage": false,
+
+  // ========================================
+  // WORKBENCH (UI)
+  // ========================================
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.iconTheme": "vs-minimal",
+  "workbench.startupEditor": "none"
+}

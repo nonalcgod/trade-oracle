@@ -1,0 +1,276 @@
+# Trade Oracle API Test Collection
+# Use with REST Client extension (humao.rest-client)
+# Click "Send Request" above each ### section
+
+# ===========================================
+# ENVIRONMENT SETUP
+# ===========================================
+# Switch environments: Cmd+Shift+P → "REST Client: Switch Environment"
+# Current: development (localhost:8000)
+
+@baseUrl = http://localhost:8000
+# @baseUrl = https://trade-oracle-production.up.railway.app
+
+# ===========================================
+# HEALTH & STATUS CHECKS
+# ===========================================
+
+### Health Check
+GET {{baseUrl}}/health
+Accept: application/json
+
+### API Root
+GET {{baseUrl}}/
+Accept: application/json
+
+### Risk Limits
+GET {{baseUrl}}/api/risk/limits
+Accept: application/json
+
+# ===========================================
+# DATA SERVICE (Option Quotes & Greeks)
+# ===========================================
+
+### Get Latest Option Data for SPY Call
+GET {{baseUrl}}/api/data/latest/SPY241206C00600000
+Accept: application/json
+
+### Get Latest Option Data for QQQ Call
+GET {{baseUrl}}/api/data/latest/QQQ241206C00520000
+Accept: application/json
+
+# ===========================================
+# IV MEAN REVERSION STRATEGY
+# ===========================================
+
+### Generate IV Mean Reversion Signal
+POST {{baseUrl}}/api/strategies/signal
+Content-Type: application/json
+
+{
+  "symbol": "QQQ251219C00640000",
+  "underlying_symbol": "QQQ",
+  "current_price": 11.96,
+  "strike": 640.0,
+  "expiration": "2025-12-19",
+  "option_type": "call",
+  "bid": 11.85,
+  "ask": 12.07,
+  "volume": 1250,
+  "open_interest": 8500,
+  "iv": 0.18,
+  "delta": 0.42,
+  "gamma": 0.015,
+  "theta": -0.08,
+  "vega": 0.25
+}
+
+### Approve Trade (Risk Check)
+POST {{baseUrl}}/api/risk/approve
+Content-Type: application/json
+
+{
+  "signal": {
+    "symbol": "QQQ251219C00640000",
+    "action": "BUY",
+    "confidence": 0.85,
+    "reasoning": "IV rank at 15th percentile - underpriced volatility",
+    "entry_price": 11.96,
+    "stop_loss": 5.98,
+    "take_profit": 23.92
+  },
+  "portfolio_value": 100000.0,
+  "position_value": 9568.0
+}
+
+# ===========================================
+# 0DTE IRON CONDOR STRATEGY
+# ===========================================
+
+### Check Iron Condor Health
+GET {{baseUrl}}/api/iron-condor/health
+Accept: application/json
+
+### Check Entry Window (9:31-9:45am ET)
+GET {{baseUrl}}/api/iron-condor/should-enter
+Accept: application/json
+
+### Generate Iron Condor Signal
+POST {{baseUrl}}/api/iron-condor/signal
+Content-Type: application/json
+
+{
+  "underlying_symbol": "SPY"
+}
+
+### Build Iron Condor Order
+POST {{baseUrl}}/api/iron-condor/build
+Content-Type: application/json
+
+{
+  "underlying_symbol": "SPY",
+  "target_delta": 0.15,
+  "spread_width": 5.0
+}
+
+### Check Exit Conditions for Position
+POST {{baseUrl}}/api/iron-condor/check-exit
+Content-Type: application/json
+
+{
+  "position_id": 1,
+  "current_price": 450.25
+}
+
+# ===========================================
+# EXECUTION SERVICE (Order Placement)
+# ===========================================
+
+### Place Single-Leg Order (IV Mean Reversion)
+POST {{baseUrl}}/api/execution/order
+Content-Type: application/json
+
+{
+  "symbol": "QQQ251219C00640000",
+  "qty": 8,
+  "side": "buy",
+  "order_type": "limit",
+  "limit_price": 12.00,
+  "time_in_force": "day"
+}
+
+### Place Multi-Leg Order (Iron Condor)
+POST {{baseUrl}}/api/execution/order/multi-leg
+Content-Type: application/json
+
+{
+  "legs": [
+    {
+      "symbol": "SPY241206P00595000",
+      "qty": 1,
+      "side": "sell",
+      "order_type": "limit",
+      "limit_price": 1.50
+    },
+    {
+      "symbol": "SPY241206P00590000",
+      "qty": 1,
+      "side": "buy",
+      "order_type": "limit",
+      "limit_price": 0.80
+    },
+    {
+      "symbol": "SPY241206C00615000",
+      "qty": 1,
+      "side": "sell",
+      "order_type": "limit",
+      "limit_price": 1.40
+    },
+    {
+      "symbol": "SPY241206C00620000",
+      "qty": 1,
+      "side": "buy",
+      "order_type": "limit",
+      "limit_price": 0.75
+    }
+  ],
+  "strategy_name": "iron_condor",
+  "time_in_force": "day"
+}
+
+### Get Current Portfolio
+GET {{baseUrl}}/api/execution/portfolio
+Accept: application/json
+
+### Get All Positions
+GET {{baseUrl}}/api/execution/positions
+Accept: application/json
+
+### Get Position by ID
+GET {{baseUrl}}/api/execution/positions/1
+Accept: application/json
+
+### Get Trade History
+GET {{baseUrl}}/api/execution/trades
+Accept: application/json
+
+### Get Recent Trades (Last 10)
+GET {{baseUrl}}/api/execution/trades?limit=10
+Accept: application/json
+
+# ===========================================
+# TESTING ENDPOINTS (Debug Mode)
+# ===========================================
+
+### Manual Position Close
+POST {{baseUrl}}/api/testing/close-position
+Content-Type: application/json
+
+{
+  "position_id": 1,
+  "exit_reason": "manual_override"
+}
+
+### Check Exit Conditions Preview
+GET {{baseUrl}}/api/testing/check-exit-conditions
+Accept: application/json
+
+### Force Exit All Positions (Emergency)
+POST {{baseUrl}}/api/testing/force-exit-all
+Content-Type: application/json
+
+{}
+
+### Simulate Signal (Test Trade)
+POST {{baseUrl}}/api/testing/simulate-signal
+Content-Type: application/json
+
+{
+  "symbol": "QQQ241206C00520000",
+  "action": "BUY",
+  "quantity": 5
+}
+
+### Get Position Monitor Status
+GET {{baseUrl}}/api/testing/monitor-status
+Accept: application/json
+
+# ===========================================
+# COMMON ERROR SCENARIOS (For Debugging)
+# ===========================================
+
+### Invalid Symbol (Should return 400)
+GET {{baseUrl}}/api/data/latest/INVALID_SYMBOL
+Accept: application/json
+
+### Missing Required Field (Should return 422)
+POST {{baseUrl}}/api/strategies/signal
+Content-Type: application/json
+
+{
+  "symbol": "QQQ241206C00520000"
+}
+
+### Invalid Delta Range (Should return 400)
+POST {{baseUrl}}/api/iron-condor/build
+Content-Type: application/json
+
+{
+  "underlying_symbol": "SPY",
+  "target_delta": 0.95,
+  "spread_width": 5.0
+}
+
+# ===========================================
+# PRODUCTION TESTING (Switch @baseUrl first)
+# ===========================================
+
+### Production Health Check
+# @baseUrl = https://trade-oracle-production.up.railway.app
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Production Portfolio
+# @baseUrl = https://trade-oracle-production.up.railway.app
+GET {{baseUrl}}/api/execution/portfolio
+Accept: application/json
