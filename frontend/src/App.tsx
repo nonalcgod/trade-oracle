@@ -81,7 +81,7 @@ function App() {
   if (loading && !portfolio) {
     return (
       <div className="min-h-screen bg-[#F5F1E8] p-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-[1200px]">
           <header className="mb-8">
             <h1 className="text-4xl font-sans font-semibold text-black">Trade Oracle</h1>
             <p className="text-sm text-gray-warm mt-2">IV Mean Reversion Options Strategy</p>
@@ -94,7 +94,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#F5F1E8] p-8">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-[1200px]">
         {/* Header */}
         <header className="mb-8">
           <div className="flex flex-wrap items-start justify-between gap-6">
@@ -106,7 +106,7 @@ function App() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-6">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6">
               {/* Backend Status */}
               <div className="flex items-center gap-2">
                 <StatusDot status={getBackendStatus()} />

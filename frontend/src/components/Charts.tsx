@@ -12,7 +12,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Trade } from '../api';
-import '../styles/Charts.css';
 
 interface ChartsProps {
   trades: Trade[];
@@ -74,80 +73,104 @@ export const Charts: React.FC<ChartsProps> = ({ trades }) => {
   const pnlData = generatePnLData();
   const dailyData = generateDailyMetrics();
 
+  if (trades.length === 0) {
+    return (
+      <section className="bg-white rounded-2xl border-2 border-black p-8 shadow-md">
+        <h2 className="text-2xl font-sans font-semibold text-black mb-4">Performance Charts</h2>
+        <div className="text-center text-gray-warm py-8">
+          No trades to display. Charts will appear after trades are executed.
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <div className="charts-container">
-      <h2>Performance Charts</h2>
+    <section className="space-y-6">
+      <h2 className="text-2xl font-sans font-semibold text-black">Performance Charts</h2>
 
-      {trades.length === 0 ? (
-        <div className="no-data">No trades to display. Charts will appear after trades are executed.</div>
-      ) : (
-        <>
-          {/* Cumulative P&L Chart */}
-          <div className="chart-section">
-            <h3>Cumulative P&L</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={pnlData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="index" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value: number) => `$${value.toFixed(2)}`}
-                  labelFormatter={(label) => `Trade #${label}`}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="cumulativePnL"
-                  stroke="#2ecc71"
-                  name="Cumulative P&L"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {/* Cumulative P&L Chart */}
+      <div className="bg-white rounded-2xl border-2 border-black p-8 shadow-md">
+        <h3 className="text-lg font-sans font-medium text-black mb-4">Cumulative P&L</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={pnlData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <XAxis dataKey="index" stroke="#6B7280" />
+            <YAxis stroke="#6B7280" />
+            <Tooltip
+              formatter={(value: number) => `$${value.toFixed(2)}`}
+              labelFormatter={(label) => `Trade #${label}`}
+              contentStyle={{
+                backgroundColor: 'white',
+                border: '2px solid #14B8A6',
+                borderRadius: '12px',
+              }}
+            />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="cumulativePnL"
+              stroke="#14B8A6"
+              strokeWidth={2}
+              name="Cumulative P&L"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
-          {/* Daily Metrics Chart */}
-          {dailyData.length > 0 && (
-            <div className="chart-section">
-              <h3>Daily Wins vs Losses</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="wins" stackId="a" fill="#2ecc71" name="Wins" />
-                  <Bar dataKey="losses" stackId="a" fill="#e74c3c" name="Losses" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Daily P&L Chart */}
-          {dailyData.length > 0 && (
-            <div className="chart-section">
-              <h3>Daily P&L</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
-                  <Legend />
-                  <Bar
-                    dataKey="pnl"
-                    fill="#3498db"
-                    name="Daily P&L"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </>
+      {/* Daily Metrics Chart */}
+      {dailyData.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-black p-8 shadow-md">
+          <h3 className="text-lg font-sans font-medium text-black mb-4">Daily Wins vs Losses</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dailyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '2px solid #14B8A6',
+                  borderRadius: '12px',
+                }}
+              />
+              <Legend />
+              <Bar dataKey="wins" stackId="a" fill="#10B981" name="Wins" />
+              <Bar dataKey="losses" stackId="a" fill="#EF4444" name="Losses" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
-    </div>
+
+      {/* Daily P&L Chart */}
+      {dailyData.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-black p-8 shadow-md">
+          <h3 className="text-lg font-sans font-medium text-black mb-4">Daily P&L</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={dailyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
+              <Tooltip
+                formatter={(value: number) => `$${value.toFixed(2)}`}
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: '2px solid #14B8A6',
+                  borderRadius: '12px',
+                }}
+              />
+              <Legend />
+              <Bar
+                dataKey="pnl"
+                fill="#14B8A6"
+                name="Daily P&L"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </section>
   );
 };
 

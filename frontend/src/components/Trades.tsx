@@ -60,7 +60,7 @@ export const Trades: React.FC<TradesProps> = ({ trades, loading }) => {
             <div key={trade.id} className="bg-white border-2 border-black rounded-2xl p-6 shadow-md transition-all hover:shadow-lg">
               {/* Header */}
               <div className="mb-3">
-                <h3 className="text-sm font-mono text-black mb-2">{trade.symbol}</h3>
+                <h3 className="text-sm font-mono text-black mb-2 truncate">{trade.symbol}</h3>
                 <div className="flex items-center gap-2">
                   {ivPercentile !== null && (
                     <PillBadge variant={trade.signal_type === 'buy' ? 'teal' : 'rose'}>

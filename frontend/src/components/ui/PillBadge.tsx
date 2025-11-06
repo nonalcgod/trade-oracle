@@ -9,12 +9,12 @@ export interface PillBadgeProps {
 }
 
 const variantStyles: Record<PillVariant, string> = {
-  rose: 'bg-rose text-white',
-  teal: 'bg-teal text-white',
-  amber: 'bg-amber text-white',
+  rose: 'bg-rose text-white border-2 border-black',
+  teal: 'bg-teal text-white border-2 border-black',
+  amber: 'bg-amber text-white border-2 border-black',
   cream: 'bg-cream text-black border-2 border-black',
-  black: 'bg-black text-white',
-  emerald: 'bg-emerald text-white',
+  black: 'bg-black text-white border-2 border-black',
+  emerald: 'bg-emerald text-white border-2 border-black',
 };
 
 export const PillBadge: React.FC<PillBadgeProps> = ({
