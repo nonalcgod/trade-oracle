@@ -307,9 +307,11 @@ For comprehensive scaling strategy, see **SCALING_PLAN.md** in the project root.
 
 **Not Yet Implemented (Phases 4-5):**
 - ⚠️ WebSocket streaming (currently using REST polling)
+- ⚠️ Async Alpaca client for concurrent multi-symbol quotes
+- ⚠️ Redis caching layer for risk limits and portfolio state
+- ⚠️ Supabase Real-Time subscriptions for live portfolio updates
 - ⚠️ Enhanced dashboard charts (Recharts installed but basic implementation)
 - ⚠️ Full Claude weekly reflection (skeleton exists in `backend/cron/reflection.py`)
-- ⚠️ Real-time portfolio updates (dashboard polls every 5 seconds)
 
 ## Important Notes
 
@@ -676,18 +678,27 @@ vercel --prod
 - **Commission**: $5.20 ($0.65/contract)
 - **Total Position Value**: $9,568
 
+**Recent Work (Nov 5, 2025 - Code Hygiene & Cleanup):**
+- **HYGIENE: Dead Code Cleanup** (commit pending)
+  - Removed unused service files never imported anywhere (521 lines):
+    - `backend/services/alpaca_async.py` (177 lines) - Phase 4 feature
+    - `backend/services/realtime.py` (116 lines) - Phase 4 feature
+    - `backend/utils/cache.py` (228 lines) - Phase 4 feature
+  - Fixed hardcoded Supabase URL in `backend/apply_migration.py`
+  - Synced requirements-local.txt with requirements-railway.txt (eliminated version conflicts)
+  - Updated README.md with iron condor documentation
+  - Added Playwright test artifacts to .gitignore
+
 **Recent Work (Nov 5, 2025 - Quick Wins & Automation Session):**
 - **QUICKWINS: Frontend + Backend Optimizations** (commit 2e517a4)
   - Created Positions.tsx component with live P/L and exit condition progress bars
   - Added performance_indexes.sql with 10 strategic database indexes (10x speedup)
-  - Built Redis caching utility (backend/utils/cache.py) with graceful fallback
   - Integrated positions display into main dashboard (5-second updates)
   - Expected impact: 70% reduction in database queries, sub-50ms IV rank queries
 
 - **AUTOMATION: Full Automated Trading System** (commit 1b92de6)
   - Verified position monitor auto-closes at 50% profit, 75% stop, 21 DTE
   - Created testing API (/api/testing) for manual control and debugging
-  - Built async Alpaca client (5-10x performance for multi-symbol quotes)
   - Implemented monitoring/alerts infrastructure (Discord/Slack webhooks)
   - Created IV data seeding script for generating test signals
   - **Result**: Fully automated open → monitor → close → P&L cycle
@@ -701,7 +712,6 @@ vercel --prod
 
 **Performance Improvements Deployed:**
 - Database indexes ready (user must apply in Supabase)
-- Async Alpaca client for concurrent API calls
 - Redis caching structure (optional, requires UPSTASH_REDIS_URL)
 - Frontend positions display with real-time progress bars
 

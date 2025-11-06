@@ -80,8 +80,8 @@ function App() {
 
   if (loading && !portfolio) {
     return (
-      <div className="min-h-screen bg-[#F5F1E8] p-8">
-        <div className="mx-auto max-w-[1200px]">
+      <div className="min-h-screen bg-[#F5F1E8]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
           <header className="mb-8">
             <h1 className="text-4xl font-sans font-semibold text-black">Trade Oracle</h1>
             <p className="text-sm text-gray-warm mt-2">IV Mean Reversion Options Strategy</p>
@@ -93,11 +93,11 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8] p-8">
-      <div className="mx-auto max-w-[1200px]">
+    <div className="min-h-screen bg-[#F5F1E8]">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
         {/* Header */}
         <header className="mb-8">
-          <div className="flex flex-wrap items-start justify-between gap-6">
+          <div className="flex flex-wrap items-start justify-between gap-4 md:gap-6">
             <div>
               <h1 className="text-3xl lg:text-4xl font-sans font-semibold text-black">Trade Oracle</h1>
               <p className="text-sm text-gray-warm mt-2 flex items-center gap-2">

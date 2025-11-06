@@ -60,4 +60,13 @@ backtest/cache/
 backtest/*.csv
 backtest/*.json
 
+# Playwright test artifacts
+playwright-report/
+test-results/
+**/screenshots/
+
+# VS Code settings (optional - allow extensions.json to be committed)
+.vscode/settings.json
+.vscode/launch.json
+
 .vercel

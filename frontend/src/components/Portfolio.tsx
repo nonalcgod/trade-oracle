@@ -30,7 +30,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ portfolio }) => {
         <p className="text-xs uppercase tracking-wide text-gray-warm mb-2">
           Portfolio Balance
         </p>
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-mono font-bold text-black mb-4 truncate">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-bold text-black mb-4">
           {formatCurrency(portfolio.balance)}
         </h1>
         <div className="flex items-center justify-center gap-2">
@@ -48,41 +48,41 @@ export const Portfolio: React.FC<PortfolioProps> = ({ portfolio }) => {
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 lg:gap-6">
         {/* Win Rate - Mint Background */}
-        <div className="bg-[#E8F5E9] rounded-2xl p-8 border-2 border-black shadow-md">
-          <p className="text-xs uppercase tracking-wide text-gray-600 mb-2 truncate">
+        <div className="bg-[#E8F5E9] rounded-2xl p-5 md:p-6 border-2 border-black shadow-md min-w-0">
+          <p className="text-sm md:text-base text-gray-600 mb-2 truncate">
             Win Rate
           </p>
-          <p className="text-3xl font-mono font-bold text-black">
+          <p className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-black">
             {(portfolio.win_rate * 100).toFixed(1)}%
           </p>
         </div>
 
         {/* Delta - Cream Background */}
-        <div className="bg-[#FFF8E1] rounded-2xl p-8 border-2 border-black shadow-md">
-          <p className="text-xs uppercase tracking-wide text-gray-600 mb-2 truncate">
+        <div className="bg-[#FFF8E1] rounded-2xl p-5 md:p-6 border-2 border-black shadow-md min-w-0">
+          <p className="text-sm md:text-base text-gray-600 mb-2 truncate">
             Delta
           </p>
-          <p className="text-3xl font-mono font-bold text-black">
+          <p className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-black">
             {portfolio.delta >= 0 ? '+' : ''}{portfolio.delta.toFixed(1)}
           </p>
         </div>
 
         {/* Theta - Blue Background */}
-        <div className="bg-[#E3F2FD] rounded-2xl p-8 border-2 border-black shadow-md">
-          <p className="text-xs uppercase tracking-wide text-gray-600 mb-2 truncate">
+        <div className="bg-[#E3F2FD] rounded-2xl p-5 md:p-6 border-2 border-black shadow-md min-w-0">
+          <p className="text-sm md:text-base text-gray-600 mb-2 truncate">
             Theta
           </p>
-          <p className="text-3xl font-mono font-bold text-black">
+          <p className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-black">
             {portfolio.theta.toFixed(2)}
           </p>
         </div>
 
         {/* Consecutive Losses - Pink Background */}
-        <div className="bg-[#FCE4EC] rounded-2xl p-8 border-2 border-black shadow-md">
-          <p className="text-xs uppercase tracking-wide text-gray-600 mb-2 truncate">
+        <div className="bg-[#FCE4EC] rounded-2xl p-5 md:p-6 border-2 border-black shadow-md min-w-0">
+          <p className="text-sm md:text-base text-gray-600 mb-2 truncate">
             Loss Streak
           </p>
-          <p className="text-3xl font-mono font-bold text-black">
+          <p className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-black">
             {portfolio.consecutive_losses}/3
           </p>
         </div>

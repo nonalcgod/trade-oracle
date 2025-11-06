@@ -6,11 +6,11 @@ import os
 from supabase import create_client
 
 # Get Supabase credentials from environment
-SUPABASE_URL = "https://zwuqmnzqjkybnbicwbhz.supabase.co"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
-if not SUPABASE_SERVICE_KEY:
-    print("❌ Error: SUPABASE_SERVICE_KEY environment variable not set")
+if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+    print("❌ Error: SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables not set")
     print("Run: railway run python backend/apply_migration.py")
     exit(1)
 

@@ -13,13 +13,24 @@ A production-ready options trading system built on 100% free tiers. Implements I
 - **Market Data**: Alpaca Markets (free paper trading)
 - **AI Analysis**: Claude 3.5 Sonnet (optional for weekly reflections)
 
-## Strategy
+## Strategies
 
-**IV Mean Reversion** - Research-proven strategy with 75% win rate in backtests:
+Trade Oracle implements two algorithmic options strategies:
+
+### 1. IV Mean Reversion
+Research-proven strategy with 75% win rate in backtests:
 - Sell when IV > 70th percentile (overpriced options)
 - Buy when IV < 30th percentile (underpriced options)
 - Trade options with 30-45 days to expiration
 - Hardcoded parameters based on historical research
+
+### 2. 0DTE Iron Condor (NEW)
+Same-day expiration 4-leg spreads for consistent income:
+- Entry window: 9:31-9:45am ET (first 15 minutes only)
+- Delta-based strike selection (target 0.15 delta)
+- Automated exits: 50% profit, 2x stop loss, or 3:50pm ET force close
+- 70-80% theoretical win rate
+- Multi-leg position tracking with P&L monitoring
 
 ## Risk Management
 
