@@ -141,12 +141,19 @@ class IronCondorStrategy:
                 if not option.greeks or not option.greeks.delta:
                     continue
 
+                # Parse strike price from OCC symbol format
+                # Format: UNDERLYING + YYMMDD + C/P + DDDDDDDD (strike in 1/1000ths)
+                # Example: SPY251106C00600000 = $600.00
+                symbol = option.symbol
+                strike_str = symbol[-8:]  # Last 8 digits
+                strike = Decimal(strike_str) / Decimal('1000')
+
                 delta = abs(Decimal(str(option.greeks.delta)))
                 delta_diff = abs(delta - target_delta)
 
                 if delta_diff < best_delta_diff:
                     best_delta_diff = delta_diff
-                    best_strike = Decimal(str(option.strike_price))
+                    best_strike = strike
 
             if best_delta_diff > DELTA_TOLERANCE:
                 logger.warning("No strike within delta tolerance",
