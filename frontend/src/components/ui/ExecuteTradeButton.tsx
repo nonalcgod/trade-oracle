@@ -14,6 +14,7 @@ export const ExecuteTradeButton: React.FC<ExecuteTradeButtonProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [symbol, setSymbol] = useState('SPY251219C00600000'); // Default symbol
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -45,20 +46,92 @@ export const ExecuteTradeButton: React.FC<ExecuteTradeButtonProps> = ({
     try {
       if (strategy === 'iron-condor') {
         // Execute Iron Condor
-        const buildResponse = await apiService.buildIronCondor({} as any, 0); // Placeholder
-        const result = await apiService.executeMultiLegOrder(buildResponse as any);
+        const buildResponse = await fetch('https://trade-oracle-production.up.railway.app/api/iron-condor/build?underlying=SPY&expiration_date=' + new Date().toISOString().split('T')[0] + '&quantity=' + quantity, {
+          method: 'POST'
+        });
+        const buildData = await buildResponse.json();
+
+        if (buildData.status === 'success') {
+          const result = await apiService.executeMultiLegOrder(buildData.multi_leg_order);
+
+          if (result.success) {
+            setSuccess(`✓ Iron condor executed successfully!`);
+            if (onExecute) onExecute();
+            setTimeout(handleCloseModal, 2000);
+          } else {
+            setError(result.error || 'Execution failed');
+          }
+        } else {
+          setError('Failed to build iron condor: ' + (buildData.detail || 'Unknown error'));
+        }
+      } else {
+        // Execute IV Mean Reversion - Full workflow
+        // Step 1: Generate signal with sample tick data
+        const tickData = {
+          tick: {
+            symbol: symbol,
+            underlying_price: 597.50,
+            strike: 600,
+            expiration: '2025-12-19T21:00:00.000Z',
+            bid: 11.80,
+            ask: 12.20,
+            delta: 0.48,
+            gamma: 0.015,
+            theta: -0.25,
+            vega: 0.18,
+            iv: 0.185,
+            timestamp: new Date().toISOString()
+          }
+        };
+
+        const signalResponse = await fetch('https://trade-oracle-production.up.railway.app/api/strategies/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(tickData)
+        });
+        const signalData = await signalResponse.json();
+
+        if (!signalData.signal || (signalData.signal.signal !== 'buy' && signalData.signal.signal !== 'sell')) {
+          setError('No valid signal generated. Market conditions may not meet strategy criteria.');
+          return;
+        }
+
+        // Step 2: Get risk approval
+        const portfolioResponse = await apiService.getPortfolio();
+        const riskApprovalData = {
+          signal: signalData.signal,
+          quantity: quantity,
+          portfolio: {
+            balance: portfolioResponse.balance.toString(),
+            daily_pnl: portfolioResponse.daily_pnl.toString(),
+            delta: portfolioResponse.delta.toString(),
+            theta: portfolioResponse.theta.toString()
+          }
+        };
+
+        const approvalResponse = await apiService.approveRisk(riskApprovalData);
+
+        if (!approvalResponse.approved) {
+          setError('Trade not approved by risk management: ' + (approvalResponse.reason || 'Circuit breakers triggered'));
+          return;
+        }
+
+        // Step 3: Execute trade
+        const result = await apiService.executeIVTrade({
+          symbol: symbol,
+          side: signalData.signal.signal,
+          quantity: approvalResponse.position_size || quantity,
+          signal: signalData.signal,
+          approval: approvalResponse
+        });
 
         if (result.success) {
-          setSuccess(`✓ Iron condor executed successfully!`);
+          setSuccess(`✓ IV trade executed successfully! Order ID: ${result.alpaca_order_id}`);
           if (onExecute) onExecute();
           setTimeout(handleCloseModal, 2000);
         } else {
           setError(result.error || 'Execution failed');
         }
-      } else {
-        // Execute IV Mean Reversion
-        // This would require generating signal and getting approval first
-        setError('IV Mean Reversion execution requires signal generation first');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Unknown error');
@@ -166,6 +239,34 @@ export const ExecuteTradeButton: React.FC<ExecuteTradeButtonProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Symbol Input (IV Mean Reversion only) */}
+            {strategy === 'iv-mean-reversion' && (
+              <div className="mb-6">
+                <label className="block text-sm font-sans text-gray-600 uppercase tracking-wide mb-2">
+                  Option Symbol
+                </label>
+                <input
+                  type="text"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  disabled={loading}
+                  placeholder="SPY251219C00600000"
+                  className="
+                    w-full px-4 py-3
+                    bg-white border-2 border-gray-200
+                    rounded-xl
+                    font-mono text-lg text-black
+                    focus:outline-none focus:border-teal-500
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-colors
+                  "
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  OCC format: SYMBOL + YYMMDD + C/P + 8-digit strike
+                </p>
+              </div>
+            )}
 
             {/* Quantity Selector */}
             <div className="mb-6">
