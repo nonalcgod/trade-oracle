@@ -10,5 +10,8 @@
     "restartPolicyMaxRetries": 10,
     "drainingSeconds": 60,
     "overlapSeconds": 30
+  },
+  "env": {
+    "ENVIRONMENT": "production"
   }
 }

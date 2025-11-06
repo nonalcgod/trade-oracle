@@ -18,6 +18,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
         python-dateutil==2.8.2 pytz==2023.3 websockets==12.0 \
         structlog==24.4.0 supabase==2.15.1
 
+# Create non-root user for security (recommended best practice)
+RUN useradd -m -u 1000 tradeoracle && chown -R tradeoracle:tradeoracle /app
+USER tradeoracle
+
 # Run uvicorn on all interfaces using Railway's PORT env var
 # Production settings: keep-alive 65s (Railway proxy requirement), graceful shutdown 300s
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 65 --timeout-graceful-shutdown 300 --limit-concurrency 1000 --backlog 2048"]

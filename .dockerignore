@@ -41,8 +41,23 @@ Thumbs.db
 # Documentation and markdown (not needed in production)
 *.md
 !README.md
+docs/
 
-# Frontend (if accidentally in backend/)
+# Frontend (separate deployment - DO NOT COPY)
+frontend/
+
+# Testing (not needed in production)
+tests/
+.pytest_cache/
+test-results/
+playwright-report/
+**/screenshots/
+
+# Development tools (not needed in production)
+scripts/
+backtest/
+
+# Frontend artifacts (if accidentally in backend/)
 node_modules/
 dist/
 build/
