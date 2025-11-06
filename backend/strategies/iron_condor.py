@@ -120,7 +120,18 @@ class IronCondorStrategy:
 
             # Filter by option type
             # get_option_chain returns dict[symbol: str, snapshot: OptionsSnapshot]
-            options = [opt for opt in chain.values() if opt.type.lower() == option_type]
+            # Symbol format: SPY251106C00600000 (underlying + YYMMDD + C/P + strike)
+            # Extract option type from symbol (C or P in position after expiration date)
+            options = []
+            for opt in chain.values():
+                # Parse symbol to find option type (C or P)
+                symbol = opt.symbol
+                # OCC format: last 9 chars are XDDDDDddd where X is C/P
+                # More reliable: look for C or P after the 6-digit date
+                if 'C0' in symbol and option_type == 'call':
+                    options.append(opt)
+                elif 'P0' in symbol and option_type == 'put':
+                    options.append(opt)
 
             # Find strike closest to target delta
             best_strike = None
