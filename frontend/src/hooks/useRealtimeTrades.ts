@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { createClient, RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Trade } from '../api';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
@@ -38,7 +38,7 @@ export function useRealtimeTrades(initialTrades: Trade[] = []) {
             schema: 'public',
             table: 'trades'
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Trade>) => {
             console.log('New trade received:', payload);
 
             const newTrade = payload.new as Trade;
@@ -55,7 +55,7 @@ export function useRealtimeTrades(initialTrades: Trade[] = []) {
             }, 5000);
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: string) => {
           console.log('Trade subscription status:', status);
           setIsConnected(status === 'SUBSCRIBED');
         });

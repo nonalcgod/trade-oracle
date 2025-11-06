@@ -119,7 +119,8 @@ class IronCondorStrategy:
                 return None
 
             # Filter by option type
-            options = [opt for opt in chain if opt.type.lower() == option_type]
+            # get_option_chain returns dict[symbol: str, snapshot: OptionsSnapshot]
+            options = [opt for opt in chain.values() if opt.type.lower() == option_type]
 
             # Find strike closest to target delta
             best_strike = None

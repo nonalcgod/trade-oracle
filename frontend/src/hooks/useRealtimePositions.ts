@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { createClient, RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { Position } from '../api';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
@@ -17,19 +17,6 @@ let supabase: ReturnType<typeof createClient> | null = null;
 
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
-
-interface PositionUpdate {
-  position_id: number;
-  symbol: string;
-  status: string;
-  entry_price: number;
-  current_price: number;
-  unrealized_pnl: number;
-  pnl_percent: number;
-  opened_at: string;
-  closed_at?: string;
-  exit_reason?: string;
 }
 
 export function useRealtimePositions(initialPositions: Position[] = []) {
@@ -55,7 +42,7 @@ export function useRealtimePositions(initialPositions: Position[] = []) {
             schema: 'public',
             table: 'positions'
           },
-          (payload) => {
+          (payload: RealtimePostgresChangesPayload<Position>) => {
             console.log('Position update received:', payload);
 
             const { eventType, new: newPosition, old: oldPosition } = payload;
@@ -84,7 +71,7 @@ export function useRealtimePositions(initialPositions: Position[] = []) {
             setLastUpdate(new Date());
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: string) => {
           console.log('Realtime subscription status:', status);
           setIsConnected(status === 'SUBSCRIBED');
         });

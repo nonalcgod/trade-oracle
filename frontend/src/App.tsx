@@ -19,7 +19,7 @@ function App() {
 
   // Real-time hooks (will fallback to polling if Supabase not configured)
   const { positions, isConnected: positionsConnected, isRealtimeEnabled: positionsRealtimeEnabled } = useRealtimePositions(initialPositions)
-  const { trades, latestTrade, isConnected: tradesConnected, isRealtimeEnabled: tradesRealtimeEnabled } = useRealtimeTrades(initialTrades)
+  const { trades, isConnected: tradesConnected, isRealtimeEnabled: tradesRealtimeEnabled } = useRealtimeTrades(initialTrades)
 
   // Fetch data from API
   const fetchData = async () => {
