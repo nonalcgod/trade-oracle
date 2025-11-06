@@ -9,7 +9,7 @@ import asyncio
 import os
 import sys
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import random
 
 # Add parent directory to path
@@ -118,7 +118,7 @@ async def seed_option_data(
         price_series.reverse()
 
         # Insert data points
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         inserted = 0
 
         for i, (iv, underlying_px) in enumerate(zip(iv_series, price_series)):

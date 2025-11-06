@@ -8,7 +8,7 @@ DO NOT expose these endpoints in production without authentication.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import structlog
 
@@ -223,7 +223,7 @@ async def simulate_trading_signal(request: ManualSignalRequest):
             stop_loss=Decimal(str(request.stop_loss)),
             take_profit=Decimal(str(request.take_profit)),
             reasoning=request.reasoning,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         # Get portfolio state

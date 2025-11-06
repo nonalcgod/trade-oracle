@@ -21,7 +21,7 @@ Risk:
 """
 
 from decimal import Decimal
-from datetime import datetime, time, timedelta
+from datetime import datetime, timezone, time, timedelta
 from typing import Optional, List, Tuple
 import pytz
 import structlog
@@ -286,7 +286,7 @@ class IronCondorStrategy:
                 max_loss_per_side=max_loss_per_side,
                 expiration=expiration,
                 dte=dte,
-                entry_time=datetime.utcnow(),
+                entry_time=datetime.now(timezone.utc),
                 underlying_price_at_entry=underlying_price
             )
 
@@ -467,7 +467,7 @@ class IronCondorStrategy:
             signal = IronCondorSignal(
                 action="open",
                 setup=setup,
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
 
             logger.info("Iron condor signal generated",

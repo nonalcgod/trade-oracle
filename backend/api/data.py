@@ -8,7 +8,7 @@ Logs all ticks to Supabase for historical analysis.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from typing import Optional
 import asyncio
@@ -217,7 +217,7 @@ async def fetch_option_data_with_greeks(symbol: str) -> OptionTick:
             theta=greeks['theta'],
             vega=greeks['vega'],
             iv=greeks['iv'],
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         
         # Log to Supabase asynchronously

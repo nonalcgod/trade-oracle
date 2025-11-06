@@ -8,7 +8,7 @@ Research-proven strategy with 75% win rate in backtests.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import os
 import structlog
@@ -84,7 +84,7 @@ class IVMeanReversionStrategy:
                 return 0.50
             
             # Fetch 90-day historical IV data
-            cutoff_date = datetime.utcnow() - timedelta(days=self.IV_LOOKBACK_DAYS)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.IV_LOOKBACK_DAYS)
             
             response = supabase.table("option_ticks")\
                 .select("iv")\
@@ -147,7 +147,7 @@ class IVMeanReversionStrategy:
                 stop_loss=tick.mid_price * Decimal('2.0'),  # Exit if doubles (loss)
                 take_profit=tick.mid_price * Decimal('0.5'),  # Exit at 50% profit
                 reasoning=f"IV rank {iv_rank:.2f} > {self.IV_HIGH} (overpriced), DTE {dte}",
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
         
         # Generate BUY signal: IV too low (underpriced)
@@ -161,7 +161,7 @@ class IVMeanReversionStrategy:
                 stop_loss=tick.mid_price * Decimal('0.5'),  # Exit if loses 50%
                 take_profit=tick.mid_price * Decimal('2.0'),  # Exit at 100% profit
                 reasoning=f"IV rank {iv_rank:.2f} < {self.IV_LOW} (underpriced), DTE {dte}",
-                timestamp=datetime.utcnow()
+                timestamp=datetime.now(timezone.utc)
             )
         
         # No signal if IV is in neutral range

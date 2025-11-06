@@ -5,9 +5,9 @@ Pydantic models for different trading strategies (iron condors, straddles, etc.)
 """
 
 from decimal import Decimal
-from datetime import datetime
-from typing import Optional, List, Literal
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from typing import List, Literal
+from pydantic import BaseModel, Field, ConfigDict
 
 from models.trading import SignalType
 
@@ -18,23 +18,27 @@ from models.trading import SignalType
 
 class OptionLeg(BaseModel):
     """Single leg of a multi-leg options order"""
+    model_config = ConfigDict(from_attributes=True)
+
     symbol: str
     side: Literal["buy", "sell"]  # Buy to open or sell to open
     quantity: int
     option_type: Literal["call", "put"]
     strike: Decimal
     expiration: datetime
-    limit_price: Optional[Decimal] = None  # For individual leg pricing
+    limit_price: Decimal | None = None  # For individual leg pricing
 
 
 class MultiLegOrder(BaseModel):
     """Multi-leg options order (spread, condor, butterfly, etc.)"""
+    model_config = ConfigDict(from_attributes=True)
+
     strategy_type: Literal["iron_condor", "call_spread", "put_spread", "straddle", "strangle", "butterfly"]
     legs: List[OptionLeg]
-    net_credit: Optional[Decimal] = None  # Expected credit received
-    net_debit: Optional[Decimal] = None   # Expected debit paid
-    max_profit: Optional[Decimal] = None
-    max_loss: Optional[Decimal] = None
+    net_credit: Decimal | None = None  # Expected credit received
+    net_debit: Decimal | None = None   # Expected debit paid
+    max_profit: Decimal | None = None
+    max_loss: Decimal | None = None
 
 
 # ============================================================================
@@ -43,6 +47,8 @@ class MultiLegOrder(BaseModel):
 
 class IronCondorSetup(BaseModel):
     """Configuration for iron condor trade"""
+    model_config = ConfigDict(from_attributes=True)
+
     underlying_symbol: str = Field(..., description="Underlying symbol (SPY, QQQ)")
 
     # Call spread (short call + long call protection)
@@ -62,8 +68,8 @@ class IronCondorSetup(BaseModel):
     total_credit: Decimal
 
     # Greeks
-    net_delta: Optional[Decimal] = None
-    net_theta: Optional[Decimal] = None
+    net_delta: Decimal | None = None
+    net_theta: Decimal | None = None
 
     # Risk metrics
     max_profit: Decimal  # Total credit received
@@ -76,12 +82,13 @@ class IronCondorSetup(BaseModel):
     # Entry conditions
     entry_time: datetime
     underlying_price_at_entry: Decimal
-    vix_at_entry: Optional[Decimal] = None
-    iv_rank_at_entry: Optional[Decimal] = None
+    vix_at_entry: Decimal | None = None
+    iv_rank_at_entry: Decimal | None = None
 
 
 class IronCondorExitConditions(BaseModel):
     """Exit rules for iron condor"""
+    model_config = ConfigDict(from_attributes=True)
     # Profit targets
     profit_target_pct: Decimal = Field(Decimal("0.50"), description="Close at 50% of max profit")
 
@@ -101,10 +108,12 @@ class IronCondorExitConditions(BaseModel):
 
 class IronCondorSignal(BaseModel):
     """Signal to enter/exit iron condor"""
+    model_config = ConfigDict(from_attributes=True)
+
     action: Literal["open", "close", "adjust"]
-    setup: Optional[IronCondorSetup] = None
-    exit_reason: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    setup: IronCondorSetup | None = None
+    exit_reason: str | None = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ============================================================================
@@ -113,19 +122,21 @@ class IronCondorSignal(BaseModel):
 
 class EarningsEvent(BaseModel):
     """Earnings event data"""
+    model_config = ConfigDict(from_attributes=True)
+
     symbol: str
     earnings_date: datetime
-    estimate_eps: Optional[Decimal] = None
-    actual_eps: Optional[Decimal] = None
-    surprise_pct: Optional[Decimal] = None
+    estimate_eps: Decimal | None = None
+    actual_eps: Decimal | None = None
+    surprise_pct: Decimal | None = None
 
     # Historical data
-    avg_move_pct: Optional[Decimal] = None  # Historical average move
-    implied_move_pct: Optional[Decimal] = None  # Current implied move
+    avg_move_pct: Decimal | None = None  # Historical average move
+    implied_move_pct: Decimal | None = None  # Current implied move
 
     # Volatility data
-    iv_rank: Optional[Decimal] = None
-    iv_percentile: Optional[Decimal] = None
+    iv_rank: Decimal | None = None
+    iv_percentile: Decimal | None = None
 
     # Timing
     before_market: bool = True  # True if before market open, False if after close
@@ -133,6 +144,8 @@ class EarningsEvent(BaseModel):
 
 class StraddleSetup(BaseModel):
     """ATM straddle configuration"""
+    model_config = ConfigDict(from_attributes=True)
+
     symbol: str
     strike: Decimal  # ATM strike
     expiration: datetime
@@ -160,11 +173,13 @@ class StraddleSetup(BaseModel):
 
 class EarningsStraddleSignal(BaseModel):
     """Signal for earnings straddle trade"""
+    model_config = ConfigDict(from_attributes=True)
+
     action: Literal["open_long_straddle", "open_short_iron_condor", "close"]
-    setup: Optional[StraddleSetup] = None
+    setup: StraddleSetup | None = None
     timing: Literal["before_earnings", "after_earnings"]
     reasoning: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ============================================================================
@@ -173,28 +188,32 @@ class EarningsStraddleSignal(BaseModel):
 
 class MomentumIndicators(BaseModel):
     """Technical indicators for momentum strategy"""
+    model_config = ConfigDict(from_attributes=True)
+
     rsi: Decimal
     macd: Decimal
     macd_signal: Decimal
     macd_histogram: Decimal
 
     # Moving averages
-    sma_20: Optional[Decimal] = None
-    sma_50: Optional[Decimal] = None
-    ema_12: Optional[Decimal] = None
-    ema_26: Optional[Decimal] = None
+    sma_20: Decimal | None = None
+    sma_50: Decimal | None = None
+    ema_12: Decimal | None = None
+    ema_26: Decimal | None = None
 
     # Volatility
-    atr: Optional[Decimal] = None
-    bollinger_upper: Optional[Decimal] = None
-    bollinger_lower: Optional[Decimal] = None
+    atr: Decimal | None = None
+    bollinger_upper: Decimal | None = None
+    bollinger_lower: Decimal | None = None
 
     # Trend strength
-    adx: Optional[Decimal] = None
+    adx: Decimal | None = None
 
 
 class MomentumSignal(BaseModel):
     """Signal for momentum-based option trade"""
+    model_config = ConfigDict(from_attributes=True)
+
     direction: Literal["bullish", "bearish", "neutral"]
     confidence: Decimal = Field(..., ge=0, le=1)
 
@@ -216,7 +235,7 @@ class MomentumSignal(BaseModel):
     stop_loss_pct: Decimal = Decimal("0.25")
 
     # Timing
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reasoning: str
 
 
@@ -226,6 +245,8 @@ class MomentumSignal(BaseModel):
 
 class StrategyPerformance(BaseModel):
     """Performance metrics for a strategy"""
+    model_config = ConfigDict(from_attributes=True)
+
     strategy_name: str
 
     # Trade statistics
@@ -242,8 +263,8 @@ class StrategyPerformance(BaseModel):
 
     # Risk metrics
     max_drawdown: Decimal
-    sharpe_ratio: Optional[Decimal] = None
-    sortino_ratio: Optional[Decimal] = None
+    sharpe_ratio: Decimal | None = None
+    sortino_ratio: Decimal | None = None
 
     # Time period
     start_date: datetime
@@ -257,6 +278,8 @@ class StrategyPerformance(BaseModel):
 
 class StrategyComparison(BaseModel):
     """Compare multiple strategies"""
+    model_config = ConfigDict(from_attributes=True)
+
     strategies: List[StrategyPerformance]
 
     # Best performers
@@ -268,4 +291,4 @@ class StrategyComparison(BaseModel):
     # Portfolio level
     combined_win_rate: Decimal
     combined_sharpe: Decimal
-    correlation_matrix: Optional[dict] = None  # Strategy correlation
+    correlation_matrix: dict | None = None  # Strategy correlation

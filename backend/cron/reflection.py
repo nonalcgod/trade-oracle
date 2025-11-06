@@ -6,7 +6,7 @@ This is a Phase 4 feature but creating the skeleton now.
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 import asyncio
 import structlog
@@ -30,7 +30,7 @@ async def fetch_weekly_trades():
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         
         # Get trades from last 7 days
-        cutoff = datetime.utcnow() - timedelta(days=7)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         
         response = supabase.table("trades")\
             .select("*")\
@@ -116,7 +116,7 @@ async def save_reflection(analysis, metrics):
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         
         data = {
-            "week_ending": datetime.utcnow().date().isoformat(),
+            "week_ending": datetime.now(timezone.utc).date().isoformat(),
             "analysis": {"text": analysis},
             "metrics": metrics
         }

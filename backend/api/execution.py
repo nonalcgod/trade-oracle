@@ -8,7 +8,7 @@ Paper trading only.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import os
 import structlog
@@ -114,7 +114,7 @@ async def create_position(
             "entry_trade_id": entry_trade_id,
             "current_price": float(entry_price),
             "unrealized_pnl": 0.0,
-            "opened_at": datetime.utcnow().isoformat(),
+            "opened_at": datetime.now(timezone.utc).isoformat(),
             "status": "open"
         }
 
@@ -183,7 +183,7 @@ async def create_multi_leg_position(
             "entry_trade_id": entry_trade_id,
             "current_price": float(multi_leg.net_credit) if multi_leg.net_credit else 0.0,
             "unrealized_pnl": 0.0,
-            "opened_at": datetime.utcnow().isoformat(),
+            "opened_at": datetime.now(timezone.utc).isoformat(),
             "status": "open",
             # Multi-leg specific fields
             "legs": legs_data,
@@ -484,7 +484,7 @@ async def get_latest_tick(symbol: str):
                 symbol=symbol,
                 underlying_price=Decimal(str(row['underlying_price'])),
                 strike=Decimal(str(row['strike'])),
-                expiration=parsed.get('expiration', datetime.utcnow()),
+                expiration=parsed.get('expiration', datetime.now(timezone.utc)),
                 bid=Decimal(str(row['bid'])),
                 ask=Decimal(str(row['ask'])),
                 delta=Decimal(str(row.get('delta', 0))),
@@ -615,7 +615,7 @@ async def close_position(position: Position) -> OrderResponse:
             stop_loss=Decimal('0'),
             take_profit=Decimal('0'),
             reasoning="Automated position exit",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         # Execute close order
@@ -636,7 +636,7 @@ async def close_position(position: Position) -> OrderResponse:
                 position.id,
                 status='closed',
                 exit_trade_id=trade_id,
-                closed_at=datetime.utcnow(),
+                closed_at=datetime.now(timezone.utc),
                 exit_reason="Automated exit"
             )
 
@@ -714,7 +714,7 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
             entry_price=actual_price,
             commission=commission,
             slippage=slippage,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         # Log to Supabase and get trade ID
@@ -830,7 +830,7 @@ async def place_multi_leg_order(multi_leg: MultiLegOrder) -> OrderResponse:
             entry_price=abs(total_cost / (first_leg.quantity * 100)),  # Per-contract net cost
             commission=commission,
             slippage=Decimal('0'),  # TODO: Calculate from actual fills
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
 
         # Log multi-leg trade to Supabase

@@ -5,7 +5,7 @@ Used for real-time Greeks computation from market data.
 
 import math
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class GreeksCalculator:
@@ -171,7 +171,7 @@ def calculate_all_greeks(
     option_px = float(option_price)
 
     # Calculate time to expiration in years
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     time_diff = expiration - now
     T = max(time_diff.total_seconds() / (365.25 * 24 * 3600), 0.0001)  # Minimum 1 hour
 

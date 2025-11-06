@@ -8,7 +8,7 @@ and tracks system metrics for performance monitoring.
 import os
 import asyncio
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 import structlog
 import httpx
@@ -59,7 +59,7 @@ async def send_discord_alert(title: str, message: str, level: str = AlertLevel.I
                 "title": f"🤖 Trade Oracle: {title}",
                 "description": message,
                 "color": colors.get(level, 3447003),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "footer": {
                     "text": "Trade Oracle Alert System"
                 }
@@ -130,7 +130,7 @@ async def send_slack_alert(title: str, message: str, level: str = AlertLevel.INF
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"*Level:* {level} | *Time:* {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                            "text": f"*Level:* {level} | *Time:* {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
                         }
                     ]
                 }

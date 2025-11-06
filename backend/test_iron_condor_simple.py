@@ -4,7 +4,7 @@ Simple Iron Condor Model Tests
 Tests that don't require Alpaca dependencies.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 
 
@@ -63,7 +63,7 @@ def test_models():
         max_loss_per_side=Decimal("400.00"),
         expiration=expiration,
         dte=1,
-        entry_time=datetime.utcnow(),
+        entry_time=datetime.now(timezone.utc),
         underlying_price_at_entry=Decimal("597.75")
     )
     print(f"✓ IronCondorSetup: {setup.underlying_symbol} @ ${setup.underlying_price_at_entry}")
@@ -77,7 +77,7 @@ def test_models():
     signal = IronCondorSignal(
         action="open",
         setup=setup,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     print(f"✓ IronCondorSignal: {signal.action} @ {signal.timestamp.strftime('%H:%M:%S')}")
 
