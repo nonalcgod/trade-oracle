@@ -12,6 +12,7 @@ import { useRealtimeTrades } from './hooks/useRealtimeTrades'
 import { Activity, Sparkles } from 'lucide-react'
 import { PillBadge } from './components/ui/PillBadge'
 import { StatusDot } from './components/ui/StatusDot'
+import { ExecuteTradeButton } from './components/ui/ExecuteTradeButton'
 
 function App() {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null)
@@ -199,6 +200,17 @@ function App() {
           {portfolio && (
             <>
               <Portfolio portfolio={portfolio} />
+
+              {/* Execute Trade Button */}
+              <div className="flex justify-center">
+                <div className="w-full max-w-md">
+                  <ExecuteTradeButton
+                    strategy={selectedStrategy}
+                    disabled={!portfolio || getBackendStatus() !== 'connected'}
+                    onExecute={fetchData}
+                  />
+                </div>
+              </div>
 
               {/* Iron Condor Specific Sections */}
               {selectedStrategy === 'iron-condor' && (

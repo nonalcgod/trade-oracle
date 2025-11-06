@@ -245,6 +245,44 @@ export const apiService = {
     const response = await api.get('/api/iron-condor/health');
     return response.data;
   },
+
+  // Trade Execution
+  async executeIVTrade(params: {
+    symbol: string;
+    side: 'buy' | 'sell';
+    quantity: number;
+    signal: any;
+    approval: any;
+  }): Promise<{ success: boolean; alpaca_order_id?: string; error?: string }> {
+    const response = await api.post('/api/execution/order', {
+      symbol: params.symbol,
+      side: params.side,
+      quantity: params.quantity,
+      order_type: 'limit',
+      signal: params.signal,
+      approval: params.approval,
+    });
+    return response.data;
+  },
+
+  async executeMultiLegOrder(multiLegOrder: {
+    strategy_type: string;
+    legs: Array<{
+      symbol: string;
+      side: 'buy' | 'sell';
+      quantity: number;
+      option_type: 'call' | 'put';
+      strike: number;
+      expiration: string;
+      limit_price: number;
+    }>;
+    net_credit: number;
+    max_profit: number;
+    max_loss: number;
+  }): Promise<{ success: boolean; legs?: any[]; error?: string }> {
+    const response = await api.post('/api/execution/order/multi-leg', multiLegOrder);
+    return response.data;
+  },
 };
 
 // Error handler wrapper
