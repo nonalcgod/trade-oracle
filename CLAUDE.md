@@ -672,6 +672,7 @@ claude
 
 ### Resources
 
+- **VSCODE_EXTENSIONS_GUIDE.md** - Complete guide for VSCode extensions optimized for Claude Code workflow
 - NetworkChuck's "AI in the Terminal" video/guide
 - Railway Audit Report (Nov 4, 2025) - in project root
 - Claude Code docs: https://docs.claude.com/claude-code
