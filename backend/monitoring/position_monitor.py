@@ -32,8 +32,39 @@ async def check_strategy_specific_exit(position, strategy_name: str) -> Optional
         Exit reason if should exit, None otherwise
     """
     try:
+        import pytz
+        from datetime import time
+
         # Route to appropriate strategy checker
-        if strategy_name.lower() == "iron_condor" or "condor" in strategy_name.lower():
+        if strategy_name.lower() == "momentum_scalping" or "momentum" in strategy_name.lower():
+            # Momentum scalping: force close at 11:30am ET
+            eastern = pytz.timezone('US/Eastern')
+            now_et = datetime.now(eastern).time()
+            momentum_force_close_time = time(11, 30)  # 11:30am ET
+
+            if now_et >= momentum_force_close_time:
+                return "11:30am force close (momentum scalping - avoid lunch decay)"
+
+            # Also check 3:50pm final force close
+            final_force_close_time = time(15, 50)  # 3:50pm ET
+            if now_et >= final_force_close_time:
+                return "3:50pm force close (final market close - gamma risk)"
+
+            # Check 50% profit target (exit 100%)
+            if position.current_price and position.entry_price:
+                pnl_pct = (float(position.current_price) - float(position.entry_price)) / float(position.entry_price)
+                if pnl_pct >= 0.50:
+                    return f"50% profit target reached ({pnl_pct*100:.1f}%)"
+
+            # Check 50% stop loss
+            if position.current_price and position.entry_price:
+                pnl_pct = (float(position.current_price) - float(position.entry_price)) / float(position.entry_price)
+                if pnl_pct <= -0.50:
+                    return f"50% stop loss hit ({pnl_pct*100:.1f}%)"
+
+            return None  # No exit conditions met
+
+        elif strategy_name.lower() == "iron_condor" or "condor" in strategy_name.lower():
             # Check iron condor exit conditions
             from api.execution import get_latest_tick
             import pytz

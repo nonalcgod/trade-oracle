@@ -93,7 +93,7 @@ app.add_middleware(
 )
 
 # Import routers
-from api import data, strategies, risk, execution, testing, iron_condor
+from api import data, strategies, risk, execution, testing, iron_condor, momentum_scalping
 
 # Register routers
 app.include_router(data.router)
@@ -102,6 +102,7 @@ app.include_router(risk.router)
 app.include_router(execution.router)
 app.include_router(testing.router)
 app.include_router(iron_condor.router)
+app.include_router(momentum_scalping.router)
 
 
 @app.get("/")
@@ -111,7 +112,7 @@ async def root():
         "name": "Trade Oracle",
         "version": "2.0.0",
         "status": "running",
-        "strategies": ["IV Mean Reversion", "0DTE Iron Condor"],
+        "strategies": ["IV Mean Reversion", "0DTE Iron Condor", "0DTE Momentum Scalping"],
         "paper_trading": True,
         "endpoints": {
             "docs": "/docs",
@@ -120,6 +121,7 @@ async def root():
             "risk": "/api/risk",
             "execution": "/api/execution",
             "iron_condor": "/api/iron-condor",
+            "momentum_scalping": "/api/momentum-scalping",
             "testing": "/api/testing"
         }
     }

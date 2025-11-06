@@ -23,6 +23,7 @@ class PositionType(str, Enum):
     SHORT = "short"
     SPREAD = "spread"
     IRON_CONDOR = "iron_condor"
+    MOMENTUM_SCALPING = "momentum_scalping"
     STRADDLE = "straddle"
     STRANGLE = "strangle"
     BUTTERFLY = "butterfly"
