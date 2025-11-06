@@ -367,6 +367,15 @@ Located in `.claude/agents/` directory:
 - Commits changes to git with descriptive messages
 - Closes sessions cleanly with complete documentation
 
+**@iron-condor-expert** - Elite 0DTE iron condor trading specialist
+- Analyzes VIX, IV Rank, and market regime for optimal entry conditions
+- Monitors economic calendar (FOMC, CPI, NFP) and earnings events
+- Searches web for real-time market data, news, and volatility metrics
+- Recommends specific iron condor trades with exact strikes and delta selection
+- Provides risk assessment and identifies setups to avoid
+- Integrates with Trade Oracle backend for execution guidance
+- Expert knowledge from 10,000+ institutional trades and academic research
+
 ### Quick Start Commands
 
 ```bash
@@ -380,6 +389,7 @@ claude
 > @railway-deployment-expert check my Dockerfile configuration
 > @deployment-critic review my Railway setup
 > @code-reviewer analyze backend/api/risk.py
+> @iron-condor-expert what trades look good today?
 
 # Update this context file
 > Update CLAUDE.md with today's progress and decisions
