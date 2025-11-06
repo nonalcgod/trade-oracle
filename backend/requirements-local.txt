@@ -11,7 +11,7 @@ alpaca-trade-api==3.1.1
 
 # Database
 # NOTE: For Railway deployment, see requirements-railway.txt
-supabase==2.3.0  # Local dev only - Railway uses newer version
+supabase==2.15.1  # Matched with Railway version for consistency
 postgrest==0.13.0  # Local dev only
 
 # Cache
@@ -37,4 +37,9 @@ websockets==12.0
 
 # Logging & Monitoring
 structlog==23.2.0
+
+# Testing (development only)
+pytest==8.4.2
+pytest-asyncio==1.2.0
+pytest-mock==3.15.1
 

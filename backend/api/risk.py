@@ -54,9 +54,9 @@ class RiskManager:
     - Based on strategy historical performance
     """
     
-    # Hardcoded limits (TESTING MODE - Increased for MVP demonstration)
-    MAX_PORTFOLIO_RISK = Decimal('0.05')   # 5% max risk per trade (TESTING: increased from 2%)
-    MAX_POSITION_SIZE = Decimal('0.10')    # 10% max position size (TESTING: increased from 5%)
+    # Hardcoded limits (PRODUCTION MODE - DO NOT MODIFY)
+    MAX_PORTFOLIO_RISK = Decimal('0.02')   # 2% max risk per trade
+    MAX_POSITION_SIZE = Decimal('0.05')    # 5% max position size
     DAILY_LOSS_LIMIT = Decimal('-0.03')    # -3% circuit breaker
     MAX_CONSECUTIVE_LOSSES = 3
     MAX_DELTA = Decimal('5.0')             # Maximum portfolio delta exposure

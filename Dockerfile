@@ -19,4 +19,5 @@ RUN pip install --no-cache-dir --upgrade pip && \
         structlog==24.4.0 supabase==2.15.1
 
 # Run uvicorn on all interfaces using Railway's PORT env var
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Production settings: keep-alive 65s (Railway proxy requirement), graceful shutdown 300s
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 65 --timeout-graceful-shutdown 300 --limit-concurrency 1000 --backlog 2048"]

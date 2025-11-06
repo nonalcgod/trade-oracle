@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import structlog
 import os
 import asyncio
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -24,13 +25,57 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Create FastAPI app
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan context manager.
+    Replaces deprecated @app.on_event("startup") and @app.on_event("shutdown")
+    """
+    # Startup
+    logger.info("Trade Oracle starting up",
+               environment=os.getenv("ENVIRONMENT", "development"),
+               paper_trading=True)
+
+    # Verify environment variables
+    required_vars = [
+        "ALPACA_API_KEY",
+        "ALPACA_SECRET_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_KEY"
+    ]
+
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+
+    if missing_vars:
+        logger.warning("Missing environment variables", missing=missing_vars)
+    else:
+        logger.info("All environment variables configured")
+
+    # Start position monitor background task
+    from monitoring.position_monitor import monitor_positions
+    monitor_task = asyncio.create_task(monitor_positions())
+    logger.info("Position monitor started")
+
+    yield  # Application runs here
+
+    # Shutdown
+    logger.info("Trade Oracle shutting down")
+    monitor_task.cancel()
+    try:
+        await monitor_task
+    except asyncio.CancelledError:
+        logger.info("Position monitor stopped gracefully")
+
+
+# Create FastAPI app with lifespan
 app = FastAPI(
     title="Trade Oracle",
     description="IV Mean Reversion options trading system with free-tier services",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Configure CORS for frontend
@@ -100,38 +145,6 @@ async def health_check():
     }
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Run on application startup"""
-    logger.info("Trade Oracle starting up",
-               environment=os.getenv("ENVIRONMENT", "development"),
-               paper_trading=True)
-
-    # Verify environment variables
-    required_vars = [
-        "ALPACA_API_KEY",
-        "ALPACA_SECRET_KEY",
-        "SUPABASE_URL",
-        "SUPABASE_KEY"
-    ]
-
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-
-    if missing_vars:
-        logger.warning("Missing environment variables", missing=missing_vars)
-    else:
-        logger.info("All environment variables configured")
-
-    # Start position monitor background task
-    from monitoring.position_monitor import monitor_positions
-    asyncio.create_task(monitor_positions())
-    logger.info("Position monitor started")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Run on application shutdown"""
-    logger.info("Trade Oracle shutting down")
 
 
 if __name__ == "__main__":
