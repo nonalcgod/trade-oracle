@@ -136,8 +136,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1E8]">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
+    <div className="min-h-screen bg-[#F5F1E8] flex justify-center">
+      <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
         {/* Header */}
         <header className="mb-8">
           <div className="flex flex-wrap items-start justify-between gap-4 md:gap-6">
