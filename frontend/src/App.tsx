@@ -3,7 +3,10 @@ import Portfolio from './components/Portfolio'
 import Trades from './components/Trades'
 import Charts from './components/Charts'
 import Positions from './components/Positions'
-import { apiService, handleApiError, PortfolioData, Trade, HealthStatus, Position } from './api'
+import StrategySelector, { Strategy } from './components/StrategySelector'
+import IronCondorEntryWindow from './components/IronCondorEntryWindow'
+import IronCondorLegs from './components/IronCondorLegs'
+import { apiService, handleApiError, PortfolioData, Trade, HealthStatus, Position, IronCondorBuild } from './api'
 import { useRealtimePositions } from './hooks/useRealtimePositions'
 import { useRealtimeTrades } from './hooks/useRealtimeTrades'
 import { Activity, Sparkles } from 'lucide-react'
@@ -19,9 +22,49 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
+  // Strategy selection with localStorage persistence
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy>(() => {
+    const saved = localStorage.getItem('trade-oracle-strategy')
+    return (saved === 'iron-condor' ? 'iron-condor' : 'iv-mean-reversion') as Strategy
+  })
+
+  // Iron condor state
+  const [ironCondorBuild, setIronCondorBuild] = useState<IronCondorBuild | null>(null)
+  const [scoutingSetup, setScoutingSetup] = useState(false)
+
   // Real-time hooks (will fallback to polling if Supabase not configured)
   const { positions, isConnected: positionsConnected, isRealtimeEnabled: positionsRealtimeEnabled } = useRealtimePositions(initialPositions)
   const { trades, isConnected: tradesConnected, isRealtimeEnabled: tradesRealtimeEnabled } = useRealtimeTrades(initialTrades)
+
+  // Handle strategy change
+  const handleStrategyChange = (strategy: Strategy) => {
+    setSelectedStrategy(strategy)
+    localStorage.setItem('trade-oracle-strategy', strategy)
+    // Clear iron condor build when switching away
+    if (strategy !== 'iron-condor') {
+      setIronCondorBuild(null)
+    }
+  }
+
+  // Scout iron condor setups
+  const handleScoutSetups = async () => {
+    setScoutingSetup(true)
+    try {
+      // Generate signal for SPY
+      const signal = await apiService.generateIronCondorSignal('SPY')
+
+      // Build iron condor with current SPY price (would normally fetch this)
+      const build = await apiService.buildIronCondor(signal, 590) // Example price
+
+      setIronCondorBuild(build)
+    } catch (err) {
+      const errorMessage = handleApiError(err)
+      setError(`Failed to scout iron condor: ${errorMessage}`)
+      console.error('Iron Condor Scout Error:', errorMessage)
+    } finally {
+      setScoutingSetup(false)
+    }
+  }
 
   // Fetch data from API
   const fetchData = async () => {
@@ -101,7 +144,9 @@ function App() {
             <div>
               <h1 className="text-3xl lg:text-4xl font-sans font-semibold text-black">Trade Oracle</h1>
               <p className="text-sm text-gray-warm mt-2 flex items-center gap-2">
-                IV Mean Reversion Options Strategy
+                {selectedStrategy === 'iron-condor'
+                  ? '0DTE Iron Condor Strategy'
+                  : 'IV Mean Reversion Options Strategy'}
                 <PillBadge variant="rose">PAPER TRADING</PillBadge>
               </p>
             </div>
@@ -133,6 +178,12 @@ function App() {
 
         {/* Main Content */}
         <main className="space-y-6">
+          {/* Strategy Selector */}
+          <StrategySelector
+            selectedStrategy={selectedStrategy}
+            onStrategyChange={handleStrategyChange}
+          />
+
           {error && (
             <div className="bg-rose/10 border-2 border-rose rounded-2xl p-4 flex items-center justify-between">
               <span className="text-rose font-medium">Error: {error}</span>
@@ -148,6 +199,29 @@ function App() {
           {portfolio && (
             <>
               <Portfolio portfolio={portfolio} />
+
+              {/* Iron Condor Specific Sections */}
+              {selectedStrategy === 'iron-condor' && (
+                <>
+                  <IronCondorEntryWindow onScoutSetups={handleScoutSetups} />
+
+                  {scoutingSetup && (
+                    <div className="bg-white rounded-2xl border-2 border-black p-6 text-center shadow-md">
+                      <p className="text-sm text-gray-600">Scouting iron condor setups...</p>
+                    </div>
+                  )}
+
+                  {ironCondorBuild && (
+                    <section className="bg-white rounded-2xl border-2 border-black p-8 shadow-md">
+                      <h2 className="text-2xl font-sans font-semibold text-black mb-6">
+                        Iron Condor Setup
+                      </h2>
+                      <IronCondorLegs build={ironCondorBuild} />
+                    </section>
+                  )}
+                </>
+              )}
+
               <Positions positions={positions} loading={loading} />
               <Charts trades={trades} />
               <Trades trades={trades} loading={loading} />
@@ -163,7 +237,9 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-gray-warm">Strategy</span>
-                <p className="text-sm font-medium text-black">IV Mean Reversion</p>
+                <p className="text-sm font-medium text-black">
+                  {selectedStrategy === 'iron-condor' ? '0DTE Iron Condor' : 'IV Mean Reversion'}
+                </p>
               </div>
               <div className="space-y-1">
                 <span className="text-xs uppercase tracking-wide text-gray-warm">Trading Mode</span>

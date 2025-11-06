@@ -62,8 +62,7 @@ function Positions({ positions, loading }: PositionsProps) {
           const dteProgress = ((45 - daysToExp) / (45 - 21)) * 100; // From 45 DTE to 21 DTE
 
           // Check if this is an iron condor (multi-leg position)
-          // In the future, this will check for position.legs && position.legs.length === 4
-          const isIronCondor = false; // Placeholder
+          const isIronCondor = position.legs && position.legs.length === 4;
 
           return (
             <div key={position.id} className="bg-white border-2 border-black rounded-2xl p-6 shadow-md transition-all hover:shadow-lg">
@@ -118,53 +117,107 @@ function Positions({ positions, loading }: PositionsProps) {
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-black">Exit Conditions</h4>
 
-                {/* Profit Target */}
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-warm truncate">💰 Profit (50%)</span>
-                    <span className={`font-mono ${profitProgress >= 100 ? 'text-emerald font-bold' : 'text-black'}`}>
-                      {pnlPercent > 0 ? `${pnlPercent.toFixed(1)}%` : '0%'} / 50%
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(profitProgress, 100)}%` }}
-                    />
-                  </div>
-                </div>
+                {isIronCondor ? (
+                  <>
+                    {/* Iron Condor: 50% Profit Target */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">💰 Profit (50%)</span>
+                        <span className={`font-mono ${profitProgress >= 100 ? 'text-emerald font-bold' : 'text-black'}`}>
+                          {pnlPercent > 0 ? `${pnlPercent.toFixed(1)}%` : '0%'} / 50%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(profitProgress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
 
-                {/* Stop Loss */}
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-warm truncate">🛑 Stop (75%)</span>
-                    <span className={`font-mono ${lossProgress >= 100 ? 'text-rose font-bold' : 'text-black'}`}>
-                      {pnlPercent < 0 ? `${Math.abs(pnlPercent).toFixed(1)}%` : '0%'} / 75%
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-rose rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(lossProgress, 100)}%` }}
-                    />
-                  </div>
-                </div>
+                    {/* Iron Condor: 2x Stop Loss */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">🛑 Stop (2x credit)</span>
+                        <span className={`font-mono ${Math.abs(pnlPercent) >= 200 ? 'text-rose font-bold' : 'text-black'}`}>
+                          {pnlPercent < 0 ? `${Math.abs(pnlPercent).toFixed(0)}%` : '0%'} / 200%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-rose rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min((Math.abs(pnlPercent) / 200) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
 
-                {/* DTE Threshold */}
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-gray-warm truncate">⏰ DTE (21d)</span>
-                    <span className={`font-mono ${dteProgress >= 100 ? 'text-amber font-bold' : 'text-black'}`}>
-                      {daysToExp} DTE
-                    </span>
-                  </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(Math.max(dteProgress, 0), 100)}%` }}
-                    />
-                  </div>
-                </div>
+                    {/* Iron Condor: 3:50pm Force Close */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">⏰ Force Close</span>
+                        <span className="font-mono text-black">
+                          {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} / 15:50 ET
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber rounded-full transition-all duration-300"
+                          style={{ width: '45%' }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Regular Position: 50% Profit Target */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">💰 Profit (50%)</span>
+                        <span className={`font-mono ${profitProgress >= 100 ? 'text-emerald font-bold' : 'text-black'}`}>
+                          {pnlPercent > 0 ? `${pnlPercent.toFixed(1)}%` : '0%'} / 50%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(profitProgress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Regular Position: 75% Stop Loss */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">🛑 Stop (75%)</span>
+                        <span className={`font-mono ${lossProgress >= 100 ? 'text-rose font-bold' : 'text-black'}`}>
+                          {pnlPercent < 0 ? `${Math.abs(pnlPercent).toFixed(1)}%` : '0%'} / 75%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-rose rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(lossProgress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Regular Position: DTE Threshold */}
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-warm truncate">⏰ DTE (21d)</span>
+                        <span className={`font-mono ${dteProgress >= 100 ? 'text-amber font-bold' : 'text-black'}`}>
+                          {daysToExp} DTE
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(Math.max(dteProgress, 0), 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Footer */}

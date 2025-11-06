@@ -69,6 +69,49 @@ export interface Position {
   unrealized_pnl: number;
   opened_at: string;
   status: string;
+  legs?: IronCondorLeg[] | null;
+  net_credit?: number | null;
+  max_loss?: number | null;
+  spread_width?: number | null;
+}
+
+export interface Signal {
+  symbol: string;
+  action: 'buy' | 'sell' | 'hold';
+  confidence: number;
+  entry_price: number;
+  stop_loss: number;
+  take_profit: number;
+  reasoning: string;
+  iv_percentile: number;
+  strategy: string;
+}
+
+export interface IronCondorLeg {
+  side: 'buy' | 'sell';
+  strike: number;
+  type: 'call' | 'put';
+  premium?: number;
+}
+
+export interface IronCondorBuild {
+  legs: IronCondorLeg[];
+  net_credit: number;
+  max_loss: number;
+  spread_width: number;
+}
+
+export interface EntryWindow {
+  should_enter: boolean;
+  reason: string;
+  current_time: string;
+}
+
+export interface ExitCheck {
+  should_exit: boolean;
+  reason: string;
+  current_pnl: number;
+  current_pnl_percent: number;
 }
 
 // API Service Functions
@@ -167,6 +210,40 @@ export const apiService = {
       current_price: parseFloat(response.data.current_price),
       unrealized_pnl: parseFloat(response.data.unrealized_pnl),
     };
+  },
+
+  // Iron Condor Methods
+  async checkEntryWindow(): Promise<EntryWindow> {
+    const response = await api.get('/api/iron-condor/should-enter');
+    return response.data;
+  },
+
+  async generateIronCondorSignal(symbol: string, creditTarget?: number): Promise<Signal> {
+    const response = await api.post('/api/iron-condor/signal', {
+      symbol,
+      credit_target: creditTarget,
+    });
+    return response.data;
+  },
+
+  async buildIronCondor(signal: Signal, underlyingPrice: number): Promise<IronCondorBuild> {
+    const response = await api.post('/api/iron-condor/build', {
+      signal,
+      underlying_price: underlyingPrice,
+    });
+    return response.data;
+  },
+
+  async checkIronCondorExit(position: Position): Promise<ExitCheck> {
+    const response = await api.post('/api/iron-condor/check-exit', {
+      position,
+    });
+    return response.data;
+  },
+
+  async getIronCondorHealth(): Promise<{ status: string; initialized: boolean }> {
+    const response = await api.get('/api/iron-condor/health');
+    return response.data;
   },
 };
 
