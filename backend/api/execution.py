@@ -713,25 +713,70 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
         
         # Submit order to Alpaca
         order = trading_client.submit_order(order_request)
-        
+
         logger.info("Order submitted to Alpaca",
                    symbol=signal.symbol,
                    side=side.value,
                    quantity=quantity,
                    limit_price=limit_price,
-                   order_id=order.id)
-        
-        # For now, assume order fills at limit price (in reality, need to wait for fill)
-        # TODO: Implement order status monitoring
-        actual_price = signal.entry_price
-        
+                   order_id=order.id,
+                   initial_status=order.status)
+
+        # Check if order filled immediately (unlikely for limit orders)
+        # For limit orders, we need to wait for fill
+        import time
+        max_wait_seconds = 5  # Wait up to 5 seconds for fill
+        check_interval = 0.5  # Check every 500ms
+        elapsed = 0
+
+        while elapsed < max_wait_seconds:
+            # Get current order status
+            current_order = trading_client.get_order_by_id(order.id)
+
+            if current_order.status == 'filled':
+                logger.info("Order filled",
+                           order_id=order.id,
+                           symbol=signal.symbol,
+                           filled_price=current_order.filled_avg_price)
+                break
+            elif current_order.status in ['cancelled', 'expired', 'rejected']:
+                logger.warning("Order not filled",
+                             order_id=order.id,
+                             status=current_order.status,
+                             symbol=signal.symbol)
+                return OrderResponse(
+                    success=False,
+                    alpaca_order_id=str(order.id),
+                    message=f"Order {current_order.status}: {signal.symbol}"
+                )
+
+            # Still pending, wait and check again
+            time.sleep(check_interval)
+            elapsed += check_interval
+
+        # After waiting, check final status
+        final_order = trading_client.get_order_by_id(order.id)
+
+        if final_order.status != 'filled':
+            logger.warning("Order did not fill within timeout",
+                         order_id=order.id,
+                         status=final_order.status,
+                         symbol=signal.symbol)
+            return OrderResponse(
+                success=False,
+                alpaca_order_id=str(order.id),
+                message=f"Order {final_order.status} (not filled): {signal.symbol}"
+            )
+
+        # Order is filled - use actual fill price
+        actual_price = Decimal(str(final_order.filled_avg_price))
+
         # Calculate commission: $0.65 per contract
         commission = Decimal('0.65') * quantity
-        
-        # Calculate slippage (for paper trading, assume minimal slippage)
-        # In production, get actual fill price and calculate
+
+        # Calculate slippage
         slippage = calculate_slippage(signal.entry_price, actual_price)
-        
+
         # Create execution record
         execution = Execution(
             symbol=signal.symbol,
@@ -759,13 +804,14 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
             logger.info("Position opened",
                        symbol=signal.symbol,
                        type=position_type,
-                       quantity=quantity)
+                       quantity=quantity,
+                       actual_fill_price=float(actual_price))
 
         return OrderResponse(
             success=True,
             execution=execution,
             alpaca_order_id=str(order.id),
-            message=f"Order placed: {side.value} {quantity} contracts at ${limit_price}"
+            message=f"Order filled: {side.value} {quantity} contracts at ${float(actual_price)}"
         )
         
     except Exception as e:
