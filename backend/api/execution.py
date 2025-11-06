@@ -582,7 +582,7 @@ async def check_exit_conditions(position: Position) -> Optional[str]:
 
 async def close_position(position: Position) -> OrderResponse:
     """
-    Close an open position by placing opposite order
+    Close an open position using Alpaca's native close_position method
 
     Args:
         position: Position to close
@@ -591,25 +591,32 @@ async def close_position(position: Position) -> OrderResponse:
         OrderResponse with close execution details
     """
     try:
-        # Determine order side for closing
-        if position.position_type == "long":
-            side = OrderSide.SELL  # Sell to close long
-            signal_type = SignalType.CLOSE_LONG
-        else:
-            side = OrderSide.BUY   # Buy to close short
-            signal_type = SignalType.CLOSE_SHORT
-
-        # Get current price for limit order
-        latest_tick = await get_latest_tick(position.symbol)
-        if not latest_tick:
+        if not trading_client:
             return OrderResponse(
                 success=False,
-                message=f"Cannot get current price for {position.symbol}"
+                message="Trading client not initialized"
             )
 
-        limit_price = latest_tick.ask if side == OrderSide.BUY else latest_tick.bid
+        # Use Alpaca's native close_position method
+        # This handles "sell to close" semantics automatically
+        order = trading_client.close_position(position.symbol)
 
-        # Create close signal
+        logger.info("Position closed via Alpaca",
+                   symbol=position.symbol,
+                   position_id=position.id,
+                   order_id=order.id)
+
+        # Get current price for P&L calculation
+        latest_tick = await get_latest_tick(position.symbol)
+        if not latest_tick:
+            # Fall back to order price if we can't get tick
+            limit_price = Decimal(str(order.filled_avg_price)) if order.filled_avg_price else position.entry_price
+        else:
+            limit_price = latest_tick.bid if position.position_type == "long" else latest_tick.ask
+
+        signal_type = SignalType.CLOSE_LONG if position.position_type == "long" else SignalType.CLOSE_SHORT
+
+        # Create close signal for logging
         close_signal = Signal(
             symbol=position.symbol,
             signal=signal_type,
@@ -622,20 +629,30 @@ async def close_position(position: Position) -> OrderResponse:
             timestamp=datetime.now(timezone.utc)
         )
 
-        # Execute close order
-        result = await place_limit_order(close_signal, position.quantity)
+        # Calculate P&L
+        if position.position_type == "long":
+            pnl = (limit_price - position.entry_price) * position.quantity * 100
+        else:  # short
+            pnl = (position.entry_price - limit_price) * position.quantity * 100
 
-        if result.success:
-            # Calculate P&L
-            if position.position_type == "long":
-                pnl = (limit_price - position.entry_price) * position.quantity * 100
-            else:  # short
-                pnl = (position.entry_price - limit_price) * position.quantity * 100
+        # Calculate commission
+        commission = Decimal('0.65') * position.quantity
 
-            # Get trade_id from result
-            trade_id = await log_trade_to_supabase(result.execution, close_signal)
+        # Create execution record
+        execution = Execution(
+            symbol=position.symbol,
+            quantity=position.quantity,
+            entry_price=limit_price,
+            commission=commission,
+            slippage=Decimal('0'),  # Assume no slippage for paper trading
+            timestamp=datetime.now(timezone.utc)
+        )
 
-            # Mark position as closed
+        # Log trade to database
+        trade_id = await log_trade_to_supabase(execution, close_signal)
+
+        # Mark position as closed
+        if position.id:
             await update_position_status(
                 position.id,
                 status='closed',
@@ -644,12 +661,16 @@ async def close_position(position: Position) -> OrderResponse:
                 exit_reason="Automated exit"
             )
 
-            logger.info("Position closed",
-                       position_id=position.id,
-                       symbol=position.symbol,
-                       pnl=float(pnl))
+        logger.info("Position closed",
+                   position_id=position.id,
+                   symbol=position.symbol,
+                   pnl=float(pnl))
 
-        return result
+        return OrderResponse(
+            success=True,
+            message=f"Position closed: {position.symbol}",
+            execution=execution
+        )
 
     except Exception as e:
         logger.error("Failed to close position",
