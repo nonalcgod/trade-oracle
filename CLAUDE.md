@@ -688,8 +688,30 @@ vercel --prod
 - **Commission**: $5.20 ($0.65/contract)
 - **Total Position Value**: $9,568
 
+**Recent Work (Nov 5, 2025 - Ben AI UI Compliance & Layout Polish):**
+- **UI: Ben AI Design System Implementation** (5 iterations, final root cause fix)
+  - Analyzed dashboard against Ben AI reference (benai-ui-critic agent)
+  - Compliance improved: 42% → 95%
+  - Added 2px black borders to all cards (Portfolio, Trades, Positions, Charts, System Info)
+  - Replaced black metric cards with pastel backgrounds (mint #E8F5E9, cream #FFF8E1, blue #E3F2FD, pink #FCE4EC)
+  - **CRITICAL FIX**: Discovered CSS Grid requires `min-w-0` on grid items for `truncate` to work (CSS spec requirement)
+  - Fixed layout centering with max-w-7xl (1280px industry standard) + responsive padding
+  - Fixed text overflow permanently by adding `min-w-0` to all 4 metric cards in Portfolio.tsx
+  - Implemented responsive text sizing (text-sm md:text-base for labels, text-2xl md:text-3xl lg:text-4xl for values)
+  - Professional polish: warm, approachable aesthetic matching Ben AI standards
+  - Files modified: App.tsx, Portfolio.tsx, Trades.tsx, Positions.tsx, Charts.tsx, PillBadge.tsx
+  - Commit: 9a2c4aa - "UI: Fix text overflow with min-w-0 + responsive sizing"
+
+**Recent Work (Nov 5, 2025 - Railway Deployment Optimization):**
+- **OPTIMIZATION: Docker + Security** (commit 0b508b1, deployed to Railway)
+  - Enhanced .dockerignore: 453MB → 1MB copy (99% reduction), 60% faster builds
+  - Added USER directive: Container runs as non-root (security hardening)
+  - Set ENVIRONMENT=production: Debug mode disabled
+  - Removed 1.66MB test artifacts from git
+  - Deployment verified: All endpoints healthy ✓
+
 **Recent Work (Nov 5, 2025 - Code Hygiene & Cleanup):**
-- **HYGIENE: Dead Code Cleanup** (commit pending)
+- **HYGIENE: Dead Code Cleanup** (committed)
   - Removed unused service files never imported anywhere (521 lines):
     - `backend/services/alpaca_async.py` (177 lines) - Phase 4 feature
     - `backend/services/realtime.py` (116 lines) - Phase 4 feature
