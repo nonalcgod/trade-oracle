@@ -57,6 +57,10 @@ except Exception as e:
 
 class OrderRequest(BaseModel):
     """Request to place an order"""
+    symbol: str
+    side: str  # "buy" or "sell"
+    quantity: int
+    order_type: str  # "market" or "limit"
     signal: Signal
     approval: RiskApproval
 
@@ -969,8 +973,8 @@ async def execute_order(request: OrderRequest) -> OrderResponse:
                 message=f"Trade not approved: {request.approval.reasoning}"
             )
 
-        # Place limit order
-        response = await place_limit_order(request.signal, request.approval.position_size)
+        # Place limit order using the actual quantity from request
+        response = await place_limit_order(request.signal, request.quantity)
 
         return response
 
