@@ -36,7 +36,11 @@ import { useScalperPositions, ScalperPosition } from '../hooks/useScalperPositio
 const ScalperPro = () => {
   // Hooks
   const { isActive, timeRemaining, currentTimeET, minutesRemaining } = useEntryWindow();
-  const { signals, entryWindowActive, lastUpdate, loading, error, refetch } = useScalperSignals();
+  const { signals, lastUpdate, loading, error, refetch } = useScalperSignals();
+
+  // Use local timezone calculation (isActive) as primary source for entry window status
+  // This ensures accurate 9:31-11:30am ET detection even if backend API is down
+  const entryWindowActive = isActive;
   const {
     tradeCount,
     winCount,
