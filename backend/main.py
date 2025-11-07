@@ -162,3 +162,5 @@ if __name__ == "__main__":
         reload=os.getenv("ENVIRONMENT") == "development"
     )
 
+
+# Momentum Scalping deployment marker - force Railway redeploy
