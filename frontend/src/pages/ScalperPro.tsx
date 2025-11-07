@@ -141,18 +141,18 @@ const ScalperPro = () => {
 
       // Update discipline tracker
       const position = positions.find(p => p.id === positionId);
-      if (position && position.unrealized_pnl !== null) {
-        const tradeResult = position.unrealized_pnl >= 0 ? 'WIN' : 'LOSS';
+      if (position && position.pnl !== null && position.pnl !== undefined) {
+        const tradeResult = position.pnl >= 0 ? 'WIN' : 'LOSS';
         recordTrade(tradeResult, {
           symbol: position.symbol,
           entry_price: position.entry_price,
           exit_price: position.current_price || position.entry_price,
-          pnl: position.unrealized_pnl,
+          pnl: position.pnl,
           exit_reason: exitReason,
         });
       }
 
-      alert(`✅ Position closed: ${result.message || 'Success'}\nP&L: $${position?.unrealized_pnl?.toFixed(2) || '0.00'}`);
+      alert(`✅ Position closed: ${result.message || 'Success'}\nP&L: $${position?.pnl?.toFixed(2) || '0.00'}`);
 
       // Refetch positions to update display
       await refetchPositions();
@@ -732,7 +732,7 @@ const ScalperPro = () => {
           quantity: selectedPosition.quantity,
           entry_price: selectedPosition.entry_price,
           current_price: selectedPosition.current_price,
-          unrealized_pnl: selectedPosition.unrealized_pnl,
+          unrealized_pnl: selectedPosition.pnl || 0,
         } : null}
         onClose={() => {
           setCloseModalOpen(false);
