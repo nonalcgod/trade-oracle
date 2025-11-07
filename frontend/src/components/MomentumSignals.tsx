@@ -6,8 +6,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { PillBadge } from './PillBadge';
-import { StatusDot } from './StatusDot';
+import { PillBadge } from './ui/PillBadge';
+import { StatusDot } from './ui/StatusDot';
 
 interface MomentumSignal {
   signal_id: string;
@@ -255,7 +255,7 @@ export const MomentumSignals: React.FC = () => {
               <p className="text-emerald-700">✅ EMA Crossover Detected</p>
             </div>
             <div className="p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded">
-              <p className="text-emerald-700">✅ RSI Confirmation (>30 or <70)</p>
+              <p className="text-emerald-700">✅ RSI Confirmation (&gt;30 or &lt;70)</p>
             </div>
             <div className="p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded">
               <p className="text-emerald-700">✅ Volume Spike (≥2x average)</p>
