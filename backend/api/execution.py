@@ -14,7 +14,7 @@ import os
 import structlog
 from supabase import create_client, Client
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import LimitOrderRequest, OrderRequest
+from alpaca.trading.requests import LimitOrderRequest, MarketOrderRequest, OrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass
 
 from models.trading import Signal, RiskApproval, Execution, Portfolio, Position, SignalType
@@ -822,6 +822,142 @@ async def place_limit_order(signal: Signal, quantity: int) -> OrderResponse:
         )
 
 
+async def place_market_order(signal: Signal, quantity: int) -> OrderResponse:
+    """
+    Place a market order with Alpaca (guaranteed fill)
+
+    Args:
+        signal: Trading signal
+        quantity: Number of contracts to trade
+
+    Returns:
+        OrderResponse with execution details
+    """
+    try:
+        if not trading_client:
+            raise HTTPException(status_code=500, detail="Trading client not initialized")
+
+        # Determine order side
+        side = OrderSide.BUY if signal.signal.value == "buy" else OrderSide.SELL
+
+        # Create market order request (no limit price needed)
+        order_request = MarketOrderRequest(
+            symbol=signal.symbol,
+            qty=quantity,
+            side=side,
+            time_in_force=TimeInForce.DAY  # Cancel at end of day if not filled (unlikely for market)
+        )
+
+        # Submit order to Alpaca
+        order = trading_client.submit_order(order_request)
+
+        logger.info("Market order submitted to Alpaca",
+                   symbol=signal.symbol,
+                   side=side.value,
+                   quantity=quantity,
+                   order_id=order.id,
+                   initial_status=order.status)
+
+        # Market orders should fill nearly immediately
+        # Wait briefly for confirmation
+        import time
+        max_wait_seconds = 3  # Shorter wait for market orders
+        check_interval = 0.2  # Check every 200ms
+        elapsed = 0
+
+        while elapsed < max_wait_seconds:
+            # Get current order status
+            current_order = trading_client.get_order_by_id(order.id)
+
+            if current_order.status == 'filled':
+                logger.info("Market order filled",
+                           order_id=order.id,
+                           symbol=signal.symbol,
+                           filled_price=current_order.filled_avg_price)
+                break
+            elif current_order.status in ['cancelled', 'expired', 'rejected']:
+                logger.warning("Market order not filled",
+                             order_id=order.id,
+                             status=current_order.status,
+                             symbol=signal.symbol)
+                return OrderResponse(
+                    success=False,
+                    alpaca_order_id=str(order.id),
+                    message=f"Market order {current_order.status}: {signal.symbol}"
+                )
+
+            # Still pending, wait and check again
+            time.sleep(check_interval)
+            elapsed += check_interval
+
+        # Check final status
+        final_order = trading_client.get_order_by_id(order.id)
+
+        if final_order.status != 'filled':
+            logger.warning("Market order did not fill within timeout",
+                         order_id=order.id,
+                         status=final_order.status,
+                         symbol=signal.symbol)
+            return OrderResponse(
+                success=False,
+                alpaca_order_id=str(order.id),
+                message=f"Market order {final_order.status} (not filled): {signal.symbol}"
+            )
+
+        # Order is filled - use actual fill price
+        actual_price = Decimal(str(final_order.filled_avg_price))
+
+        # Calculate commission: $0.65 per contract
+        commission = Decimal('0.65') * quantity
+
+        # Calculate slippage
+        slippage = calculate_slippage(signal.entry_price, actual_price)
+
+        # Create execution record
+        execution = Execution(
+            symbol=signal.symbol,
+            quantity=quantity,
+            entry_price=actual_price,
+            commission=commission,
+            slippage=slippage,
+            timestamp=datetime.now(timezone.utc)
+        )
+
+        # Log to Supabase and get trade ID
+        trade_id = await log_trade_to_supabase(execution, signal)
+
+        # Track position if opening (BUY or SELL)
+        if signal.signal in [SignalType.BUY, SignalType.SELL]:
+            position_type = "long" if signal.signal == SignalType.BUY else "short"
+            await create_position(
+                symbol=signal.symbol,
+                strategy=signal.strategy,
+                position_type=position_type,
+                quantity=quantity,
+                entry_price=actual_price,
+                entry_trade_id=trade_id
+            )
+            logger.info("Position opened",
+                       symbol=signal.symbol,
+                       type=position_type,
+                       quantity=quantity,
+                       actual_fill_price=float(actual_price))
+
+        return OrderResponse(
+            success=True,
+            execution=execution,
+            alpaca_order_id=str(order.id),
+            message=f"Market order filled: {side.value} {quantity} contracts at ${float(actual_price)}"
+        )
+
+    except Exception as e:
+        logger.error("Failed to place market order", symbol=signal.symbol, error=str(e))
+        return OrderResponse(
+            success=False,
+            message=f"Market order failed: {str(e)}"
+        )
+
+
 async def place_multi_leg_order(multi_leg: MultiLegOrder) -> OrderResponse:
     """
     Place a multi-leg options order (spread, condor, butterfly, etc.)
@@ -1027,7 +1163,7 @@ async def execute_order(request: OrderRequest) -> OrderResponse:
     Execute a trade based on signal and risk approval
 
     Args:
-        request: Contains signal and risk approval
+        request: Contains signal, risk approval, and order type
 
     Returns:
         OrderResponse with execution details
@@ -1040,8 +1176,20 @@ async def execute_order(request: OrderRequest) -> OrderResponse:
                 message=f"Trade not approved: {request.approval.reasoning}"
             )
 
-        # Place limit order using the actual quantity from request
-        response = await place_limit_order(request.signal, request.quantity)
+        # Route to appropriate order type handler
+        order_type = request.order_type.lower()
+
+        if order_type == "market":
+            logger.info("Routing to market order", symbol=request.signal.symbol)
+            response = await place_market_order(request.signal, request.quantity)
+        elif order_type == "limit":
+            logger.info("Routing to limit order", symbol=request.signal.symbol)
+            response = await place_limit_order(request.signal, request.quantity)
+        else:
+            return OrderResponse(
+                success=False,
+                message=f"Invalid order_type: {request.order_type}. Must be 'market' or 'limit'"
+            )
 
         return response
 
