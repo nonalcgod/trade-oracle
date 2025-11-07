@@ -406,7 +406,7 @@ async def check_system_health():
 
     # Check Supabase connection
     try:
-        from backend.api.execution import supabase
+        from api.execution import supabase
         if not supabase:
             issues.append("Supabase not connected")
     except:
@@ -414,7 +414,7 @@ async def check_system_health():
 
     # Check Alpaca connection
     try:
-        from backend.api.execution import trading_client
+        from api.execution import trading_client
         if not trading_client:
             issues.append("Alpaca not connected")
     except:

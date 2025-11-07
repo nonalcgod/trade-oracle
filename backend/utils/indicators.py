@@ -331,4 +331,89 @@ def generate_test_bars(prices: List[float], volumes: Optional[List[int]] = None)
     return bars
 
 
+# ============================================================================
+# Execution Quality Functions (Added for PATH 2: Execution Mastery)
+# ============================================================================
+
+def calculate_spread_percentage(bid: float, ask: float) -> float:
+    """
+    Calculate bid-ask spread as percentage of midpoint.
+
+    Args:
+        bid: Bid price
+        ask: Ask price
+
+    Returns:
+        Spread percentage (0.03 = 3%)
+
+    Example:
+        >>> calculate_spread_percentage(100.0, 103.0)
+        0.0296  # 2.96%
+    """
+    if bid <= 0 or ask <= 0:
+        return float('inf')  # Invalid prices = infinite spread
+
+    mid = (bid + ask) / 2
+    if mid == 0:
+        return float('inf')
+
+    spread = (ask - bid) / mid
+    return spread
+
+
+def is_spread_acceptable(
+    bid: float,
+    ask: float,
+    max_spread_pct: float = 0.03
+) -> tuple[bool, float]:
+    """
+    Check if bid-ask spread is acceptable for trading.
+
+    Research shows spreads >3% indicate:
+    - Low liquidity (harder to exit)
+    - Higher transaction costs
+    - Potential for adverse selection
+
+    Args:
+        bid: Bid price
+        ask: Ask price
+        max_spread_pct: Maximum acceptable spread (default 3%)
+
+    Returns:
+        (is_acceptable: bool, spread_pct: float)
+
+    Example:
+        >>> is_spread_acceptable(100.0, 102.5, max_spread_pct=0.03)
+        (True, 0.0247)  # 2.47% spread - acceptable
+
+        >>> is_spread_acceptable(100.0, 105.0)
+        (False, 0.0488)  # 4.88% spread - too wide
+    """
+    spread_pct = calculate_spread_percentage(bid, ask)
+    is_acceptable = spread_pct <= max_spread_pct
+
+    return is_acceptable, spread_pct
+
+
+def calculate_midpoint(bid: float, ask: float) -> float:
+    """
+    Calculate midpoint price between bid and ask.
+
+    Used for progressive pricing ladder (start at midpoint,
+    walk toward ask for buys or toward bid for sells).
+
+    Args:
+        bid: Bid price
+        ask: Ask price
+
+    Returns:
+        Midpoint price
+
+    Example:
+        >>> calculate_midpoint(100.0, 102.0)
+        101.0
+    """
+    return (bid + ask) / 2
+
+
 logger.info("Technical indicators module initialized")
