@@ -84,9 +84,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # Local development
         "http://localhost:5173",  # Vite default port
+        "http://localhost:3004",  # Vite fallback port (when ports in use)
         "https://frontend-nine-mocha-75.vercel.app",  # Production frontend
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",  # All Vercel preview deployments
+    allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app",  # All localhost ports + Vercel
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
