@@ -2,6 +2,7 @@
 Trade Oracle - FastAPI Backend
 
 Main application entry point with all route registrations.
+Momentum scalping and IV Mean Reversion strategies live.
 """
 
 from fastapi import FastAPI
