@@ -143,12 +143,12 @@ const ScalperPro = () => {
       const position = positions.find(p => p.id === positionId);
       if (position && position.pnl !== null && position.pnl !== undefined) {
         const tradeResult = position.pnl >= 0 ? 'WIN' : 'LOSS';
+        const pnlPercent = ((position.current_price || 0) - position.entry_price) / position.entry_price * 100;
         recordTrade(tradeResult, {
           symbol: position.symbol,
-          entry_price: position.entry_price,
-          exit_price: position.current_price || position.entry_price,
           pnl: position.pnl,
-          exit_reason: exitReason,
+          pnlPercent: pnlPercent,
+          timestamp: new Date().toISOString(),
         });
       }
 
