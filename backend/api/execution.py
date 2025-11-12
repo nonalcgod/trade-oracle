@@ -638,7 +638,10 @@ async def check_exit_conditions(position: Position) -> Optional[str]:
 
 async def close_position(position: Position) -> OrderResponse:
     """
-    Close an open position using Alpaca's native close_position method
+    Close an open position (single-leg or multi-leg)
+
+    For single-leg positions: Uses Alpaca's native close_position method
+    For multi-leg positions: Closes each leg individually and aggregates P&L
 
     Args:
         position: Position to close
@@ -653,6 +656,11 @@ async def close_position(position: Position) -> OrderResponse:
                 message="Trading client not initialized"
             )
 
+        # Check if this is a multi-leg position (Iron Condor, spreads, etc.)
+        if position.legs and len(position.legs) > 0:
+            return await _close_multi_leg_position(position)
+
+        # Single-leg position close (original logic)
         # Use Alpaca's native close_position method
         # This handles "sell to close" semantics automatically
         order = trading_client.close_position(position.symbol)
@@ -737,6 +745,160 @@ async def close_position(position: Position) -> OrderResponse:
         return OrderResponse(
             success=False,
             message=f"Failed to close position: {str(e)}"
+        )
+
+
+async def _close_multi_leg_position(position: Position) -> OrderResponse:
+    """
+    Close a multi-leg position (Iron Condor, spreads, etc.)
+
+    Closes each leg individually and aggregates P&L.
+
+    Args:
+        position: Multi-leg position to close
+
+    Returns:
+        OrderResponse with aggregated close execution details
+    """
+    try:
+        logger.info("Closing multi-leg position",
+                   position_id=position.id,
+                   symbol=position.symbol,
+                   legs=len(position.legs))
+
+        closed_legs = []
+        total_pnl = Decimal('0')
+        total_commission = Decimal('0')
+        order_ids = []
+
+        # Close each leg
+        for leg in position.legs:
+            leg_symbol = leg['symbol']
+            leg_quantity = leg['quantity']
+            leg_side = leg['side']  # 'buy' or 'sell' (entry side)
+
+            try:
+                # Close this leg using Alpaca
+                order = trading_client.close_position(leg_symbol)
+                order_ids.append(str(order.id))
+
+                logger.info("Multi-leg: Leg closed",
+                           leg_symbol=leg_symbol,
+                           order_id=order.id)
+
+                # Get current price for this leg
+                leg_tick = await get_latest_tick(leg_symbol)
+                if leg_tick:
+                    # Use bid/ask based on position type
+                    if leg_side == 'buy':  # Long leg, use bid to close
+                        exit_price = leg_tick.bid
+                    else:  # Short leg, use ask to close
+                        exit_price = leg_tick.ask
+                else:
+                    # Fallback to order fill price
+                    exit_price = Decimal(str(order.filled_avg_price)) if order.filled_avg_price else Decimal(str(leg['limit_price']))
+
+                entry_price = Decimal(str(leg['limit_price']))
+
+                # Calculate P&L for this leg
+                if leg_side == 'buy':  # Long leg
+                    leg_pnl = (exit_price - entry_price) * leg_quantity * 100
+                else:  # Short leg
+                    leg_pnl = (entry_price - exit_price) * leg_quantity * 100
+
+                # Calculate commission for this leg
+                leg_commission = Decimal('0.65') * leg_quantity
+
+                total_pnl += leg_pnl
+                total_commission += leg_commission
+
+                closed_legs.append({
+                    'symbol': leg_symbol,
+                    'side': leg_side,
+                    'entry_price': float(entry_price),
+                    'exit_price': float(exit_price),
+                    'quantity': leg_quantity,
+                    'pnl': float(leg_pnl),
+                    'order_id': str(order.id)
+                })
+
+            except Exception as leg_error:
+                logger.error("Failed to close leg",
+                            leg_symbol=leg_symbol,
+                            error=str(leg_error))
+                # Continue closing other legs even if one fails
+                continue
+
+        if len(closed_legs) == 0:
+            raise Exception("Failed to close any legs of multi-leg position")
+
+        # Calculate net entry cost (what was paid/received originally)
+        net_entry_cost = abs(position.entry_price) * position.quantity * 100
+
+        # For Iron Condors:
+        # - Entry: Receive credit (negative cost)
+        # - Exit: Pay debit to close (positive cost)
+        # - P&L = Credit Received - Debit Paid
+        exit_cost_per_contract = abs(total_pnl / (position.quantity * 100)) if position.quantity > 0 else Decimal('0')
+
+        # Create close signal for logging
+        close_signal = Signal(
+            symbol=position.symbol,
+            signal="close_multi_leg",  # Custom signal type for multi-leg
+            strategy=position.strategy,
+            confidence=1.0,
+            entry_price=exit_cost_per_contract,
+            stop_loss=Decimal('0'),
+            take_profit=Decimal('0'),
+            reasoning=f"Multi-leg position close ({len(closed_legs)}/{len(position.legs)} legs closed)",
+            timestamp=datetime.now(timezone.utc)
+        )
+
+        # Create combined execution record
+        execution = Execution(
+            symbol=position.symbol,
+            quantity=position.quantity,
+            entry_price=position.entry_price,  # Original net cost per contract
+            exit_price=exit_cost_per_contract,  # Exit cost per contract
+            pnl=total_pnl,  # Aggregated P&L from all legs
+            commission=total_commission,
+            slippage=Decimal('0'),
+            timestamp=datetime.now(timezone.utc)
+        )
+
+        # Log trade to database
+        trade_id = await log_trade_to_supabase(execution, close_signal)
+
+        # Mark position as closed
+        if position.id:
+            await update_position_status(
+                position.id,
+                status='closed',
+                exit_trade_id=trade_id,
+                closed_at=datetime.now(timezone.utc),
+                exit_reason="Multi-leg automated exit"
+            )
+
+        logger.info("Multi-leg position closed successfully",
+                   position_id=position.id,
+                   legs_closed=len(closed_legs),
+                   total_pnl=float(total_pnl),
+                   total_commission=float(total_commission))
+
+        return OrderResponse(
+            success=True,
+            message=f"Multi-leg position closed: {len(closed_legs)}/{len(position.legs)} legs",
+            execution=execution,
+            alpaca_order_id=",".join(order_ids)
+        )
+
+    except Exception as e:
+        logger.error("Failed to close multi-leg position",
+                    position_id=position.id,
+                    error=str(e))
+        return OrderResponse(
+            success=False,
+            message=f"Failed to close multi-leg position: {str(e)}"
         )
 
 
