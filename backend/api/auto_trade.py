@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 import structlog
 import asyncio
@@ -62,41 +63,38 @@ auto_trade_sessions: Dict[str, AutoTradeState] = {}
 
 def is_market_open() -> bool:
     """Check if market is currently open (9:30am - 4:00pm ET)"""
-    now = datetime.now(timezone.utc)
-    # Convert to ET (UTC-5)
-    et_hour = (now.hour - 5) % 24
-    et_time = time(et_hour, now.minute)
+    now_utc = datetime.now(timezone.utc)
+    # Convert to ET using ZoneInfo (handles DST automatically)
+    now_et = now_utc.astimezone(ZoneInfo("America/New_York"))
+    et_time = now_et.time()
 
     market_open = time(9, 30)
     market_close = time(16, 0)
 
     # Check if weekday
-    is_weekday = now.weekday() < 5
+    is_weekday = now_et.weekday() < 5
 
     return is_weekday and market_open <= et_time < market_close
 
 
 def time_until_market_open() -> int:
     """Returns seconds until market opens (9:30am ET)"""
-    now = datetime.now(timezone.utc)
-    et_hour = (now.hour - 5) % 24
-    et_minute = now.minute
+    now_utc = datetime.now(timezone.utc)
+    now_et = now_utc.astimezone(ZoneInfo("America/New_York"))
 
-    market_open_hour = 9
-    market_open_minute = 30
+    # Create market open time for today
+    market_open_today = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
 
-    # Calculate minutes until market open
-    current_minutes = et_hour * 60 + et_minute
-    market_open_minutes = market_open_hour * 60 + market_open_minute
-
-    if current_minutes < market_open_minutes:
-        # Today's market open
-        minutes_until = market_open_minutes - current_minutes
+    if now_et.time() < time(9, 30):
+        # Market hasn't opened yet today
+        time_until = (market_open_today - now_et).total_seconds()
     else:
-        # Tomorrow's market open
-        minutes_until = (24 * 60 - current_minutes) + market_open_minutes
+        # Market already opened/closed today, wait for tomorrow
+        from datetime import timedelta
+        market_open_tomorrow = market_open_today + timedelta(days=1)
+        time_until = (market_open_tomorrow - now_et).total_seconds()
 
-    return minutes_until * 60  # Convert to seconds
+    return int(time_until)
 
 
 async def research_market_conditions() -> MarketConditions:
@@ -122,10 +120,9 @@ async def research_market_conditions() -> MarketConditions:
     economic_events = []
 
     # Strategy selection logic based on time of day
-    now = datetime.now(timezone.utc)
-    et_hour = (now.hour - 5) % 24
-    et_minute = now.minute
-    et_time = time(et_hour, et_minute)
+    now_utc = datetime.now(timezone.utc)
+    now_et = now_utc.astimezone(ZoneInfo("America/New_York"))
+    et_time = now_et.time()
 
     # Iron Condor window: 9:31-9:45am ET
     ic_start = time(9, 31)
