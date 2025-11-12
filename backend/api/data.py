@@ -112,7 +112,7 @@ def parse_option_symbol(symbol: str) -> dict:
         exp_year = 2000 + int(exp_date_str[0:2])
         exp_month = int(exp_date_str[2:4])
         exp_day = int(exp_date_str[4:6])
-        expiration = datetime(exp_year, exp_month, exp_day, 16, 0, 0)  # Market close
+        expiration = datetime(exp_year, exp_month, exp_day, 16, 0, 0, tzinfo=timezone.utc)  # Market close
         
         # Parse strike
         strike = Decimal(strike_str) / Decimal('1000')
