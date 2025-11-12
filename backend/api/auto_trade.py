@@ -342,7 +342,7 @@ async def execute_momentum_scalping() -> Dict[str, Any]:
             "Selected momentum signal",
             symbol=best_signal.symbol,
             confidence=best_signal.confidence,
-            direction=best_signal.direction
+            signal_type=best_signal.signal_type
         )
 
         # Execute the signal
@@ -362,13 +362,13 @@ async def execute_momentum_scalping() -> Dict[str, Any]:
 
         return {
             "strategy": "momentum_scalping",
-            "signal": best_signal.dict(),
+            "signal": best_signal.model_dump(),
             "scan_summary": {
                 "total_signals": len(scan_result.signals),
                 "high_confidence_count": len(high_confidence_signals)
             },
             "execution": execution_result,
-            "message": f"Momentum trade executed: {best_signal.symbol} ({best_signal.direction})"
+            "message": f"Momentum trade executed: {best_signal.symbol} ({best_signal.signal_type})"
         }
 
     except HTTPException:
