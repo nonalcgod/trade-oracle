@@ -175,23 +175,34 @@ async def research_market_conditions() -> MarketConditions:
 
 async def execute_iv_mean_reversion() -> Dict[str, Any]:
     """Execute IV Mean Reversion trade"""
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
     from api.strategies import generate_signal
-    from api.execution import place_order
+    from api.execution import execute_order
+    from models.trading import OrderRequest
 
     logger.info("Executing IV Mean Reversion strategy")
 
     # Generate signal
-    signal_request = {"symbol": "SPY", "lookback_days": 90}
+    from pydantic import BaseModel
+    class SignalRequest(BaseModel):
+        symbol: str
+        lookback_days: int
+
+    signal_request = SignalRequest(symbol="SPY", lookback_days=90)
     signal = await generate_signal(signal_request)
 
-    if signal.get("signal") == "HOLD":
+    # Check if signal is valid
+    if not hasattr(signal, 'signal') or signal.signal.value == "HOLD":
         raise HTTPException(
             status_code=400,
-            detail=f"No strong IV signal (percentile: {signal.get('iv_percentile')})"
+            detail=f"No strong IV signal"
         )
 
     # Select option based on signal
-    action = "buy" if signal["signal"] == "BUY" else "sell"
+    action = "buy" if signal.signal.value == "BUY" else "sell"
     option_type = "call" if action == "buy" else "put"
 
     # Get ATM strike from latest data
@@ -202,25 +213,25 @@ async def execute_iv_mean_reversion() -> Dict[str, Any]:
     from datetime import timedelta
     expiration = (datetime.now() + timedelta(days=35)).strftime("%Y-%m-%d")
 
-    order = {
-        "symbol": "SPY",
-        "option_type": option_type,
-        "strike": strike,
-        "expiration": expiration,
-        "action": action,
-        "contracts": 1,
-        "strategy": "iv_mean_reversion",
-        "entry_reason": f"AUTO-TRADE: IV {signal['signal']} signal (percentile: {signal['iv_percentile']})"
-    }
+    order_request = OrderRequest(
+        symbol="SPY",
+        option_type=option_type,
+        strike=strike,
+        expiration=expiration,
+        action=action,
+        contracts=1,
+        strategy="iv_mean_reversion",
+        entry_reason=f"AUTO-TRADE: IV {signal.signal.value} signal"
+    )
 
     # Execute order
-    result = await place_order(order)
+    result = await execute_order(order_request)
 
     return {
         "strategy": "iv_mean_reversion",
-        "signal": signal,
-        "order": order,
-        "result": result
+        "signal": signal.dict(),
+        "order": order_request.dict(),
+        "result": result.dict() if hasattr(result, 'dict') else result
     }
 
 
