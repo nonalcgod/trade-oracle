@@ -313,7 +313,7 @@ async def update_position_status(
 
 async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optional[int]:
     """
-    Log trade execution to Supabase
+    Log trade execution to Supabase (enhanced for copy trading tracking)
 
     Args:
         execution: Execution details
@@ -327,10 +327,36 @@ async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optiona
             logger.warning("Supabase not configured, skipping trade log")
             return None
 
+        # Fetch current account balance from Alpaca
+        account_balance = None
+        risk_percentage = None
+        try:
+            if trading_client:
+                account = trading_client.get_account()
+                account_balance = float(account.equity)
+
+                # Calculate risk percentage (position value / account balance * 100)
+                position_value = abs(float(execution.entry_price) * execution.quantity * 100)
+                risk_percentage = (position_value / account_balance * 100) if account_balance > 0 else 0
+
+        except Exception as e:
+            logger.warning("Could not fetch account balance", error=str(e))
+
+        # Map strategy to standard names
+        strategy_name_map = {
+            "IV Mean Reversion": "IV_MEAN_REVERSION",
+            "Iron Condor": "IRON_CONDOR",
+            "Momentum Scalping": "MOMENTUM_SCALPING",
+            "0DTE Iron Condor": "IRON_CONDOR",
+            "0DTE Momentum Scalping": "MOMENTUM_SCALPING"
+        }
+        strategy_name = strategy_name_map.get(signal.strategy, signal.strategy.upper().replace(" ", "_"))
+
         data = {
             "timestamp": execution.timestamp.isoformat(),
             "symbol": execution.symbol,
-            "strategy": signal.strategy,
+            "strategy": signal.strategy,  # Keep original for backward compatibility
+            "strategy_name": strategy_name,  # NEW: Standardized name for filtering
             "signal_type": signal.signal.value,
             "entry_price": float(execution.entry_price),
             "exit_price": float(execution.exit_price) if execution.exit_price else None,
@@ -338,7 +364,10 @@ async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optiona
             "pnl": float(execution.pnl) if execution.pnl else None,
             "commission": float(execution.commission),
             "slippage": float(execution.slippage),
-            "reasoning": signal.reasoning
+            "reasoning": signal.reasoning,
+            "trading_mode": "paper",  # NEW: Always paper for now (will be configurable later)
+            "account_balance": account_balance,  # NEW: Balance at time of trade
+            "risk_percentage": risk_percentage  # NEW: % of account risked
         }
 
         response = supabase.table("trades").insert(data).execute()
@@ -348,7 +377,9 @@ async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optiona
             logger.info("Logged trade to Supabase",
                        trade_id=trade_id,
                        symbol=execution.symbol,
-                       signal=signal.signal.value)
+                       signal=signal.signal.value,
+                       strategy=strategy_name,
+                       risk_pct=f"{risk_percentage:.2f}%" if risk_percentage else "N/A")
             return trade_id
 
         return None
@@ -363,7 +394,7 @@ async def log_multi_leg_trade_to_supabase(
     multi_leg: MultiLegOrder
 ) -> Optional[int]:
     """
-    Log multi-leg trade execution to Supabase
+    Log multi-leg trade execution to Supabase (enhanced for copy trading tracking)
 
     Args:
         execution: Combined execution record
@@ -377,10 +408,31 @@ async def log_multi_leg_trade_to_supabase(
             logger.warning("Supabase not configured, skipping trade log")
             return None
 
+        # Fetch current account balance from Alpaca
+        account_balance = None
+        risk_percentage = None
+        try:
+            if trading_client:
+                account = trading_client.get_account()
+                account_balance = float(account.equity)
+
+                # Calculate risk percentage (net credit/debit * quantity * 100 / account balance)
+                position_value = abs(float(execution.entry_price) * execution.quantity * 100)
+                risk_percentage = (position_value / account_balance * 100) if account_balance > 0 else 0
+
+        except Exception as e:
+            logger.warning("Could not fetch account balance", error=str(e))
+
+        # Standardize strategy name
+        strategy_name = multi_leg.strategy_type.upper().replace(" ", "_")
+        if "IRON_CONDOR" not in strategy_name:
+            strategy_name = "IRON_CONDOR"  # Default for multi-leg spreads
+
         data = {
             "timestamp": execution.timestamp.isoformat(),
             "symbol": execution.symbol,  # e.g., "iron_condor_SPY"
-            "strategy": multi_leg.strategy_type,
+            "strategy": multi_leg.strategy_type,  # Keep original for backward compatibility
+            "strategy_name": strategy_name,  # NEW: Standardized name
             "signal_type": "open_multi_leg",  # Custom signal type for spreads
             "entry_price": float(execution.entry_price),  # Net credit/debit per contract
             "exit_price": None,
@@ -388,7 +440,10 @@ async def log_multi_leg_trade_to_supabase(
             "pnl": None,
             "commission": float(execution.commission),
             "slippage": float(execution.slippage),
-            "reasoning": f"{multi_leg.strategy_type} with {len(multi_leg.legs)} legs"
+            "reasoning": f"{multi_leg.strategy_type} with {len(multi_leg.legs)} legs",
+            "trading_mode": "paper",  # NEW: Always paper for now
+            "account_balance": account_balance,  # NEW: Balance at time of trade
+            "risk_percentage": risk_percentage  # NEW: % of account risked
         }
 
         response = supabase.table("trades").insert(data).execute()
@@ -397,8 +452,9 @@ async def log_multi_leg_trade_to_supabase(
             trade_id = response.data[0]['id']
             logger.info("Logged multi-leg trade to Supabase",
                        trade_id=trade_id,
-                       strategy=multi_leg.strategy_type,
-                       legs=len(multi_leg.legs))
+                       strategy=strategy_name,
+                       legs=len(multi_leg.legs),
+                       risk_pct=f"{risk_percentage:.2f}%" if risk_percentage else "N/A")
             return trade_id
 
         return None
