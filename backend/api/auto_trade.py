@@ -239,30 +239,146 @@ async def execute_iron_condor() -> Dict[str, Any]:
     """Execute Iron Condor trade"""
     logger.info("Executing Iron Condor strategy")
 
-    # Import iron condor endpoints
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    try:
+        # Import iron condor module
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        from api.iron_condor import generate_signal, build_iron_condor, should_enter_now, GenerateSignalRequest
 
-    # TODO: Import and call iron condor endpoints
-    # from api.iron_condor import generate_signal, build_iron_condor
+        # Check if we're in the entry window
+        entry_check = await should_enter_now()
+        if not entry_check.get("should_enter", False):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Outside Iron Condor entry window (9:31-9:45am ET). {entry_check.get('message', '')}"
+            )
 
-    raise HTTPException(
-        status_code=501,
-        detail="Iron Condor auto-execution coming soon! Use manual script for now."
-    )
+        # Generate signal for SPY with 0DTE expiration
+        signal_request = GenerateSignalRequest(
+            underlying="SPY",
+            expiration_date=None,  # Defaults to 0DTE
+            quantity=1
+        )
+
+        signal_result = await generate_signal(signal_request)
+
+        if not signal_result.get("signal"):
+            raise HTTPException(
+                status_code=400,
+                detail="No valid iron condor signal generated"
+            )
+
+        # Build the iron condor setup
+        signal_obj = signal_result["signal"]
+        build_result = await build_iron_condor(
+            underlying="SPY",
+            signal=signal_obj
+        )
+
+        logger.info(
+            "Iron Condor auto-execution complete",
+            setup=build_result.get("setup", {})
+        )
+
+        return {
+            "strategy": "iron_condor",
+            "signal": signal_result,
+            "setup": build_result,
+            "message": "Iron Condor built successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Iron Condor auto-execution failed", error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Iron Condor execution failed: {str(e)}"
+        )
 
 
 async def execute_momentum_scalping() -> Dict[str, Any]:
     """Execute Momentum Scalping trade"""
     logger.info("Executing Momentum Scalping strategy")
 
-    # TODO: Import and call momentum endpoints
-    # from api.momentum_scalping import scan_for_signals, execute_trade
+    try:
+        # Import momentum scalping module
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        from api.momentum_scalping import scan_for_signals, execute_signal, ExecuteSignalRequest
+        import uuid
 
-    raise HTTPException(
-        status_code=501,
-        detail="Momentum Scalping auto-execution coming soon! Use manual script for now."
-    )
+        # Scan for signals
+        scan_result = await scan_for_signals()
+
+        if not scan_result.signals:
+            raise HTTPException(
+                status_code=400,
+                detail="No momentum signals found. All 6 conditions must be met for entry."
+            )
+
+        if not scan_result.entry_window_active:
+            raise HTTPException(
+                status_code=400,
+                detail="Outside momentum scalping entry window (9:31-11:30am ET)"
+            )
+
+        # Filter for high-confidence signals (>80%)
+        high_confidence_signals = [
+            sig for sig in scan_result.signals
+            if sig.confidence >= 0.80
+        ]
+
+        if not high_confidence_signals:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No high-confidence signals found. Best confidence: {max([s.confidence for s in scan_result.signals]):.1%}"
+            )
+
+        # Pick the highest confidence signal
+        best_signal = max(high_confidence_signals, key=lambda s: s.confidence)
+
+        logger.info(
+            "Selected momentum signal",
+            symbol=best_signal.symbol,
+            confidence=best_signal.confidence,
+            direction=best_signal.direction
+        )
+
+        # Execute the signal
+        execute_request = ExecuteSignalRequest(
+            signal_id=str(uuid.uuid4()),
+            signal=best_signal,
+            quantity=1  # Start with 1 contract for auto-execution
+        )
+
+        execution_result = await execute_signal(execute_request)
+
+        logger.info(
+            "Momentum Scalping auto-execution complete",
+            symbol=best_signal.symbol,
+            result=execution_result
+        )
+
+        return {
+            "strategy": "momentum_scalping",
+            "signal": best_signal.dict(),
+            "scan_summary": {
+                "total_signals": len(scan_result.signals),
+                "high_confidence_count": len(high_confidence_signals)
+            },
+            "execution": execution_result,
+            "message": f"Momentum trade executed: {best_signal.symbol} ({best_signal.direction})"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Momentum Scalping auto-execution failed", error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Momentum Scalping execution failed: {str(e)}"
+        )
 
 
 async def execute_auto_trade_workflow(session_id: str):
