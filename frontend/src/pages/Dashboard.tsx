@@ -161,6 +161,15 @@ function Dashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 md:gap-6">
+              {/* Auto-Trade Link */}
+              <Link
+                to="/auto-trade"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white rounded-xl font-semibold transition transform hover:scale-105 active:scale-95 shadow-md"
+              >
+                <Sparkles size={18} />
+                <span>Auto-Trade</span>
+              </Link>
+
               {/* ScalperPro Link */}
               <Link
                 to="/scalper"

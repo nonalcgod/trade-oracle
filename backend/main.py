@@ -95,7 +95,7 @@ app.add_middleware(
 )
 
 # Import routers
-from api import data, strategies, risk, execution, testing, iron_condor, momentum_scalping
+from api import data, strategies, risk, execution, testing, iron_condor, momentum_scalping, auto_trade
 
 # Register routers
 app.include_router(data.router)
@@ -105,6 +105,7 @@ app.include_router(execution.router)
 app.include_router(testing.router)
 app.include_router(iron_condor.router)
 app.include_router(momentum_scalping.router)
+app.include_router(auto_trade.router)
 
 
 @app.get("/")
@@ -124,6 +125,7 @@ async def root():
             "execution": "/api/execution",
             "iron_condor": "/api/iron-condor",
             "momentum_scalping": "/api/momentum-scalping",
+            "auto_trade": "/api/auto-trade",
             "testing": "/api/testing"
         }
     }
