@@ -694,11 +694,13 @@ async def close_position(position: Position) -> OrderResponse:
         # Calculate commission
         commission = Decimal('0.65') * position.quantity
 
-        # Create execution record
+        # Create execution record with P&L tracking
         execution = Execution(
             symbol=position.symbol,
             quantity=position.quantity,
-            entry_price=limit_price,
+            entry_price=position.entry_price,  # Original entry price
+            exit_price=limit_price,  # Current exit price
+            pnl=pnl,  # Calculated profit/loss
             commission=commission,
             slippage=Decimal('0'),  # Assume no slippage for paper trading
             timestamp=datetime.now(timezone.utc)
