@@ -409,7 +409,8 @@ class MomentumScanner:
         Note: Changed from 9:31am to 10:00am based on research showing
         spreads are 20-30% tighter during 10-11am window (optimal execution).
         """
-        now_et = datetime.now(timezone.utc).astimezone()
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(timezone.utc).astimezone(ZoneInfo("America/New_York"))
 
         # Entry window: 10:00am - 11:00am ET (optimal spread window)
         window_open = time(10, 0)

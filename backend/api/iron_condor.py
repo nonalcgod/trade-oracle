@@ -198,10 +198,14 @@ async def should_enter_now() -> dict:
 
         should_enter = await strategy.should_enter_now()
 
+        # Get current time in ET for display
+        from zoneinfo import ZoneInfo
+        now_et = datetime.now(ZoneInfo("America/New_York"))
+
         return {
             "should_enter": should_enter,
             "entry_window": "9:31am - 9:45am ET",
-            "current_time": datetime.now().strftime("%H:%M:%S ET")
+            "current_time": now_et.strftime("%H:%M:%S ET")
         }
 
     except Exception as e:
