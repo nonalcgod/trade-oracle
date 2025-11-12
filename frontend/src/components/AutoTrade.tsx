@@ -182,11 +182,6 @@ export default function AutoTrade() {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
 
   return (
     <div className="auto-trade-container">
