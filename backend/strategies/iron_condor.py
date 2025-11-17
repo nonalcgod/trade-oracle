@@ -35,6 +35,7 @@ from models.strategies import (
     OptionLeg,
     MultiLegOrder
 )
+from utils.greeks import GreeksCalculator
 
 logger = structlog.get_logger()
 
@@ -137,10 +138,16 @@ class IronCondorStrategy:
             best_strike = None
             best_delta_diff = Decimal('999')
 
-            for option in options:
-                if not option.greeks or not option.greeks.delta:
-                    continue
+            # Calculate time to expiration for Black-Scholes
+            now = datetime.now(timezone.utc)
+            time_to_expiry = (expiration - now).total_seconds() / (365.25 * 24 * 3600)
 
+            # Estimate IV from VIX (rough approximation for SPY)
+            # For 0DTE, use implied volatility around 0.15-0.30 (15-30%)
+            estimated_iv = 0.20  # 20% IV as baseline
+            risk_free_rate = 0.05  # 5% risk-free rate
+
+            for option in options:
                 # Parse strike price from OCC symbol format
                 # Format: UNDERLYING + YYMMDD + C/P + DDDDDDDD (strike in 1/1000ths)
                 # Example: SPY251106C00600000 = $600.00
@@ -148,7 +155,33 @@ class IronCondorStrategy:
                 strike_str = symbol[-8:]  # Last 8 digits
                 strike = Decimal(strike_str) / Decimal('1000')
 
-                delta = abs(Decimal(str(option.greeks.delta)))
+                # Try to use Alpaca's Greeks first
+                if option.greeks and option.greeks.delta:
+                    delta = abs(Decimal(str(option.greeks.delta)))
+                else:
+                    # Calculate delta using Black-Scholes as fallback
+                    try:
+                        if option_type == "call":
+                            calculated_delta = GreeksCalculator.calculate_call_delta(
+                                S=float(underlying_price),
+                                K=float(strike),
+                                T=time_to_expiry,
+                                r=risk_free_rate,
+                                sigma=estimated_iv
+                            )
+                        else:  # put
+                            calculated_delta = GreeksCalculator.calculate_put_delta(
+                                S=float(underlying_price),
+                                K=float(strike),
+                                T=time_to_expiry,
+                                r=risk_free_rate,
+                                sigma=estimated_iv
+                            )
+                        delta = abs(Decimal(str(calculated_delta)))
+                    except Exception as e:
+                        logger.warning("Failed to calculate delta", strike=float(strike), error=str(e))
+                        continue
+
                 delta_diff = abs(delta - target_delta)
 
                 if delta_diff < best_delta_diff:
