@@ -1,0 +1,6 @@
+# Vercel Environment Variable Fix
+# Fixed VITE_API_URL to point to production Railway backend
+# Date: 2025-11-16
+#
+# Old value: http://localhost:8000
+# New value: https://trade-oracle-production.up.railway.app
