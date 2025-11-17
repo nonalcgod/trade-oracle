@@ -14,7 +14,7 @@ import os
 import structlog
 from supabase import create_client, Client
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import LimitOrderRequest, MarketOrderRequest, OrderRequest
+from alpaca.trading.requests import LimitOrderRequest, MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce, OrderClass
 
 from models.trading import Signal, RiskApproval, Execution, Portfolio, Position, SignalType
