@@ -177,8 +177,7 @@ async def execute_iv_mean_reversion() -> Dict[str, Any]:
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
     from api.strategies import generate_signal
-    from api.execution import execute_order
-    from models.trading import OrderRequest
+    from api.execution import execute_order, OrderRequest
 
     logger.info("Executing IV Mean Reversion strategy")
 
