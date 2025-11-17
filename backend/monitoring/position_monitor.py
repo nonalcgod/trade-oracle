@@ -7,8 +7,9 @@ when conditions are met (profit target, stop loss, DTE, earnings).
 Supports multiple strategies:
 - IV Mean Reversion (single-leg options)
 - 0DTE Iron Condor (multi-leg spreads)
+- 0DTE Momentum Scalping (single-leg with 11:30am force close)
+- Opening Range Breakout (single-leg with range invalidation + 3pm force close)
 - Earnings Straddles (coming soon)
-- Momentum Swings (coming soon)
 """
 
 import asyncio
@@ -163,6 +164,77 @@ async def check_strategy_specific_exit(position, strategy_name: str) -> Optional
                     put_distance = (float(underlying_price) - short_put_strike) / float(underlying_price)
                     if put_distance <= 0.02:
                         return f"Price breached put strike (distance: {put_distance*100:.1f}%)"
+
+            return None  # No exit conditions met
+
+        elif strategy_name.lower() == "opening_range_breakout" or "orb" in strategy_name.lower():
+            # Opening Range Breakout strategy exit conditions
+            from api.execution import get_latest_tick
+            import pytz
+            from datetime import time
+
+            # Get current underlying price
+            # Extract underlying symbol (e.g., "SPY" from "SPY251217C00600000")
+            option_symbol = position.symbol
+            underlying_symbol = option_symbol[:option_symbol.index(next(filter(str.isdigit, option_symbol)))]
+
+            underlying_tick = await get_latest_tick(underlying_symbol)
+            if not underlying_tick:
+                logger.warning("Cannot get underlying price for ORB exit check",
+                             symbol=underlying_symbol,
+                             position_id=position.id)
+                return None
+
+            underlying_price = (underlying_tick.bid + underlying_tick.ask) / 2
+
+            # Exit condition 1: Range invalidation (price re-enters opening range)
+            # Range boundaries stored in signal_data when position was created
+            if hasattr(position, 'signal_data') and position.signal_data:
+                range_high = position.signal_data.get('range_high')
+                range_low = position.signal_data.get('range_low')
+                direction = position.signal_data.get('direction')
+
+                if range_high and range_low:
+                    # Check if price re-entered range (thesis invalidation)
+                    if direction == "BULLISH":
+                        # For bullish breakout, price should stay above range_high
+                        if underlying_price <= range_high:
+                            return f"Range invalidation: price re-entered range (${underlying_price:.2f} below ${range_high:.2f})"
+                    elif direction == "BEARISH":
+                        # For bearish breakout, price should stay below range_low
+                        if underlying_price >= range_low:
+                            return f"Range invalidation: price re-entered range (${underlying_price:.2f} above ${range_low:.2f})"
+
+            # Exit condition 2: Option profit targets (50% gain) or stop loss (40% loss)
+            if position.current_price and position.entry_price:
+                pnl_pct = (float(position.current_price) - float(position.entry_price)) / float(position.entry_price)
+
+                # 50% profit target
+                if pnl_pct >= 0.50:
+                    return f"50% profit target reached ({pnl_pct*100:.1f}%)"
+
+                # 40% stop loss
+                if pnl_pct <= -0.40:
+                    return f"40% stop loss hit ({pnl_pct*100:.1f}%)"
+
+            # Exit condition 3: Target price reached (range width × 1.5)
+            if hasattr(position, 'signal_data') and position.signal_data:
+                target_price = position.signal_data.get('target_price')
+                direction = position.signal_data.get('direction')
+
+                if target_price:
+                    if direction == "BULLISH" and underlying_price >= target_price:
+                        return f"Target price reached (${underlying_price:.2f} >= ${target_price:.2f})"
+                    elif direction == "BEARISH" and underlying_price <= target_price:
+                        return f"Target price reached (${underlying_price:.2f} <= ${target_price:.2f})"
+
+            # Exit condition 4: 3:00pm ET force close (ORB-specific, earlier than other 0DTE)
+            eastern = pytz.timezone('US/Eastern')
+            now_et = datetime.now(eastern).time()
+            orb_force_close_time = time(15, 0)  # 3:00pm ET
+
+            if now_et >= orb_force_close_time:
+                return "3:00pm force close (ORB time exit - sufficient time for execution)"
 
             return None  # No exit conditions met
 

@@ -17,7 +17,7 @@ import IronCondorLegs from '../components/IronCondorLegs'
 import { apiService, handleApiError, PortfolioData, Trade, HealthStatus, Position, IronCondorBuild } from '../api'
 import { useRealtimePositions } from '../hooks/useRealtimePositions'
 import { useRealtimeTrades } from '../hooks/useRealtimeTrades'
-import { Activity, Sparkles, Zap } from 'lucide-react'
+import { Activity, Sparkles, Zap, TrendingUp } from 'lucide-react'
 import { PillBadge } from '../components/ui/PillBadge'
 import { StatusDot } from '../components/ui/StatusDot'
 import { ExecuteTradeButton } from '../components/ui/ExecuteTradeButton'
@@ -177,6 +177,15 @@ function Dashboard() {
               >
                 <Zap size={18} />
                 <span>ScalperPro</span>
+              </Link>
+
+              {/* ORB Link */}
+              <Link
+                to="/orb"
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-semibold transition transform hover:scale-105 active:scale-95 shadow-md"
+              >
+                <TrendingUp size={18} />
+                <span>ORB</span>
               </Link>
 
               {/* Backend Status */}

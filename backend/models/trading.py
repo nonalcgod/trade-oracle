@@ -24,6 +24,7 @@ class PositionType(str, Enum):
     SPREAD = "spread"
     IRON_CONDOR = "iron_condor"
     MOMENTUM_SCALPING = "momentum_scalping"
+    OPENING_RANGE_BREAKOUT = "opening_range_breakout"
     STRADDLE = "straddle"
     STRANGLE = "strangle"
     BUTTERFLY = "butterfly"
