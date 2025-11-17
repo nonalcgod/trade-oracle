@@ -359,9 +359,9 @@ async def log_trade_to_supabase(execution: Execution, signal: Signal) -> Optiona
             "strategy_name": strategy_name,  # NEW: Standardized name for filtering
             "signal_type": signal.signal.value,
             "entry_price": float(execution.entry_price),
-            "exit_price": float(execution.exit_price) if execution.exit_price else None,
+            "exit_price": float(execution.exit_price) if execution.exit_price is not None else None,
             "quantity": execution.quantity,
-            "pnl": float(execution.pnl) if execution.pnl else None,
+            "pnl": float(execution.pnl) if execution.pnl is not None else None,
             "commission": float(execution.commission),
             "slippage": float(execution.slippage),
             "reasoning": signal.reasoning,
