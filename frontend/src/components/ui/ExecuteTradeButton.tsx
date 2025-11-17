@@ -92,8 +92,7 @@ export const ExecuteTradeButton: React.FC<ExecuteTradeButtonProps> = ({
         const signalData = await signalResponse.json();
 
         if (!signalData.signal || (signalData.signal.signal !== 'buy' && signalData.signal.signal !== 'sell')) {
-          setError('No valid signal generated. Market conditions may not meet strategy criteria.');
-          return;
+          throw new Error('No valid signal generated. Market conditions may not meet strategy criteria.');
         }
 
         // Step 2: Get risk approval
@@ -112,8 +111,7 @@ export const ExecuteTradeButton: React.FC<ExecuteTradeButtonProps> = ({
         const approvalResponse = await apiService.approveRisk(riskApprovalData);
 
         if (!approvalResponse.approved) {
-          setError('Trade not approved by risk management: ' + (approvalResponse.reason || 'Circuit breakers triggered'));
-          return;
+          throw new Error('Trade not approved by risk management: ' + (approvalResponse.reason || 'Circuit breakers triggered'));
         }
 
         // Step 3: Execute trade
